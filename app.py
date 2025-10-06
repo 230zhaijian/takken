@@ -5,70 +5,34 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="centered")
 
-# タイトル
+# Google Fonts をクライアント読み込み（日本語をブラウザでレンダリング）
 
-st.title("📊 宅建士試験レーダーチャート")
-
-# 項目と満点
-
-categories = ["権利関係 (14)", "法令上の制限 (8)", "税その他 (3)", "宅建業法 (20)", "免除科目 (5)"]
-max_scores = [14, 8, 3, 20, 5]
-
-# 入力フォーム
-
-st.sidebar.header("スコア入力")
-scores = []
-for i, (cat, max_s) in enumerate(zip(categories, max_scores), start=1):
-score = st.sidebar.number_input(
-f"{cat}",
-min_value=0,
-max_value=max_s,
-value=int(max_s * 0.7)
+st.markdown(
+'<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">',
+unsafe_allow_html=True
 )
-scores.append(score)
 
-# 合計点と合格ライン
+st.title("📊 宅建士試験 レーダーチャート")
 
-total_score = sum(scores)
+# カテゴリと満点
+
+categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
+max_scores = [14, 8, 3, 20, 5]
 passing_line = 37
 
-st.sidebar.markdown(f"### 合計: {total_score} 点")
+# サイドバーで入力（リスト内包で書くことでインデントミスを回避）
+
+scores = [
+int(st.sidebar.number_input(f"{i+1}. {cat} (満点 {m})", min_value=0, max_value=m, value=int(m*0.7), step=1, format="%d"))
+for i, (cat, m) in enumerate(zip(categories, max_scores))
+]
+
+total_max = sum(max_scores)
+total_score = sum(scores)
+total_pct = total_score / total_max * 100
+
+st.sidebar.markdown(f"### 合計: {total_score} / {total_max} 点 ({total_pct:.1f}%)")
 if total_score >= passing_line:
 st.sidebar.success("✅ 合格ライン突破！")
 else:
-st.sidebar.error("❌ 合格ライン未達")
-
-# レーダーチャート作成
-
-fig = go.Figure()
-
-# 満点データ
-
-fig.add_trace(go.Scatterpolar(
-r=max_scores + [max_scores[0]],
-theta=categories + [categories[0]],
-fill='toself',
-name='満点',
-line=dict(color="rgba(0,100,200,0.7)", width=2)
-))
-
-# 自分のスコア
-
-fig.add_trace(go.Scatterpolar(
-r=scores + [scores[0]],
-theta=categories + [categories[0]],
-fill='toself',
-name='自分のスコア',
-line=dict(color="rgba(200,50,50,0.7)", width=2)
-))
-
-fig.update_layout(
-polar=dict(
-radialaxis=dict(visible=True, range=[0, max(max_scores)])
-),
-showlegend=True
-)
-
-# グラフ表示
-
-st.plotly_chart(fig, use_container_width=True)
+st.sidebar.er
