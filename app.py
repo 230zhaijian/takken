@@ -1,51 +1,69 @@
 import streamlit as st
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import rcParams
+import plotly.graph_objects as go
 
-# ===== 日本語フォントの指定（クラウド側に入っているフォントを優先） =====
-rcParams['font.family'] = ['Noto Sans CJK JP', 'Yu Gothic', 'Hiragino Maru Gothic Pro', 'Meiryo', 'DejaVu Sans']
+# ページ設定
 
-# 科目と満点
-categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
+st.set_page_config(page_title="宅建士試験レーダーチャート", layout="centered")
+
+# タイトル
+
+st.title("📊 宅建士試験レーダーチャート")
+
+# 項目と満点
+
+categories = ["権利関係 (14)", "法令上の制限 (8)", "税その他 (3)", "宅建業法 (20)", "免除科目 (5)"]
 max_scores = [14, 8, 3, 20, 5]
-max_total = sum(max_scores)
 
-st.title("📊 宅建士試験 レーダーチャート")
+# 入力フォーム
 
-# 入力欄
+st.sidebar.header("スコア入力")
 scores = []
-for i, cat in enumerate(categories):
-    scores.append(st.number_input(f"{cat}（満点 {max_scores[i]}）", min_value=0, max_value=max_scores[i], value=0))
-
-# レーダーチャート準備
-angles = np.linspace(0, 2*np.pi, len(categories), endpoint=False).tolist()
-angles += angles[:1]
-scores_plot = scores + scores[:1]
-max_plot = max_scores + max_scores[:1]
-
-# プロット
-fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
-ax.set_theta_offset(np.pi/2)
-ax.set_theta_direction(-1)
-
-# 満点
-ax.plot(angles, max_plot, 'o-', linewidth=2, label="満点", color="gray")
-ax.fill(angles, max_plot, alpha=0.1, color="gray")
-
-# 自分のスコア
-ax.plot(angles, scores_plot, 'o-', linewidth=2, label="自分のスコア", color="blue")
-ax.fill(angles, scores_plot, alpha=0.25, color="blue")
-
-# 日本語ラベル
-ax.set_xticks(angles[:-1])
-ax.set_xticklabels(categories, fontsize=12)
-ax.set_yticklabels([])
+for i, (cat, max_s) in enumerate(zip(categories, max_scores), start=1):
+score = st.sidebar.number_input(f"{cat}", min_value=0, max_value=max_s, value=int(max_s*0.7))
+scores.append(score)
 
 # 合計点と合格ライン
-total_score = sum(scores)
-ax.set_title(f"合計: {total_score}点 / {max_total}点\n合格ライン: 37点", size=14)
 
-ax.legend(loc="upper right", bbox_to_anchor=(1.2, 1.1))
+total_score = sum(scores)わかりにくいので、
+passing_line = 37
 
-st.pyplot(fig)
+st.sidebar.markdown(f"### 合計: {total_score} 点")
+if total_score >= passing_line:
+st.sidebar.success("✅ 合格ライン突破！")
+else:
+st.sidebar.error("❌ 合格ライン未達")
+
+# レーダーチャート作成
+
+fig = go.Figure()
+
+# 満点データ
+
+fig.add_trace(go.Scatterpolar(
+r=max_scores + [max_scores[0]],
+theta=categories + [categories[0]],
+fill='toself',
+name='満点',
+line=dict(color="rgba(0,100,200,0.7)", width=2)
+))
+
+# 自分のスコア
+
+fig.add_trace(go.Scatterpolar(
+r=scores + [scores[0]],
+theta=categories + [categories[0]],
+fill='toself',
+name='自分のスコア',
+line=dict(color="rgba(200,50,50,0.7)", width=2)
+))
+
+fig.update_layout(
+polar=dict(
+radialaxis=dict(visible=True, range=[0, max(max_scores)])
+),
+showlegend=True
+)
+
+# グラフ表示
+
+st.plotly_chart(fig, use_container_width=True)
