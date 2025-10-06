@@ -24,7 +24,7 @@ scores.append(score)
 
 # 合計点と合格ライン
 
-total_score = sum(scores)わかりにくいので、
+total_score = sum(scores)
 passing_line = 37
 
 st.sidebar.markdown(f"### 合計: {total_score} 点")
