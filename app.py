@@ -1,72 +1,92 @@
 import streamlit as st
-import numpy as np
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 
-# Load Google font (client-side) so Japanese labels render in the browser without uploading a font file
-st.markdown('<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">', unsafe_allow_html=True)
+st.set_page_config(page_title="宅建士試験レーダーチャート", layout="centered")
 
-# Configuration
 categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
 max_scores = [14, 8, 3, 20, 5]
-pass_line = 37
+passing_line = 37
 
-st.title("📊 宅建士試験 レーダーチャート (Plotly版)")
+st.title("📊 宅建士試験 レーダーチャート (Plotly)")
 
-# Input scores
-st.info("各科目の得点を入力してください（右端の矢印で数値を変えられます）")
-scores = []
 cols = st.columns(len(categories))
-for i, (col, cat, m) in enumerate(zip(cols, categories, max_scores)):
-    with col:
-        scores.append(int(st.number_input(f"{i+1}. {cat}", min_value=0, max_value=m, value=0, step=1, format="%d")))
+scores = []
+for i, (col, cat, m) in enumerate(zip(cols, categories, max_scores), start=1):
+with col:
+scores.append(int(st.number_input(f"{i}. {cat}", min_value=0, max_value=m, value=int(m * 0.7), step=1, format="%d")))
 
-# Prepare data (percentages)
 total_max = sum(max_scores)
 total_score = sum(scores)
-total_pct = total_score / total_max * 100
+total_pct = total_score / total_max * 100 if total_max > 0 else 0
 
-scores_pct = [s / m * 100 if m > 0 else 0 for s, m in zip(scores, max_scores)]
-# Close the polygon
+scores_pct = [ (s / m * 100) if m > 0 else 0 for s, m in zip(scores, max_scores) ]
 theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_max = [100] * len(categories) + [100]
 
-# Build Plotly figure
 fig = go.Figure()
 
-fig.add_trace(go.Scatterpolar(r=r_max, theta=theta, name='満点', fill='toself',
-                              line=dict(color='gray'), hoverinfo='none', opacity=0.15))
-fig.add_trace(go.Scatterpolar(r=r_scores, theta=theta, name='自分のスコア', fill='toself',
-                              line=dict(color='royalblue', width=2), marker=dict(size=6)))
+# 満点
 
-# Add markers + labels for each vertex (show score and percent)
+fig.add_trace(go.Scatterpolar(
+r=r_max,
+theta=theta,
+name="満点",
+fill="toself",
+line=dict(color="rgba(120,120,120,0.8)"),
+opacity=0.2,
+hoverinfo="none"
+))
+
+# 自分のスコア
+
+fig.add_trace(go.Scatterpolar(
+r=r_scores,
+theta=theta,
+name="自分のスコア",
+fill="toself",
+line=dict(color="royalblue", width=2),
+marker=dict(size=6)
+))
+
+# 頂点ラベル
+
 texts = [f"{s}/{m}<br>{p:.0f}%" for s, m, p in zip(scores, max_scores, scores_pct)]
 texts = texts + [texts[0]]
-fig.add_trace(go.Scatterpolar(r=r_scores, theta=theta, mode='markers+text', text=texts,
-                              textposition='top center', showlegend=False,
-                              marker=dict(color='royalblue', size=8)))
+fig.add_trace(go.Scatterpolar(
+r=r_scores,
+theta=theta,
+mode="markers+text",
+text=texts,
+textposition="top center",
+marker=dict(color="royalblue", size=8),
+showlegend=False
+))
 
-# Layout: use the Google font, radial ticks shown as percentages
+# レイアウト調整（傾きを修正）
+
 fig.update_layout(
-    polar=dict(
-        radialaxis=dict(range=[0, 100], tickvals=[20, 40, 60, 80, 100],
-                        ticktext=['20%', '40%', '60%', '80%', '100%'])
-    ),
-    font=dict(family='Noto Sans JP, sans-serif', size=12),
-    legend=dict(orientation='h', yanchor='bottom', y=1.05, xanchor='right', x=1),
-    margin=dict(l=40, r=40, t=80, b=40)
+polar=dict(
+angularaxis=dict(rotation=90, direction="clockwise"),  # ← 90°回転で「権利関係」を上に
+radialaxis=dict(range=[0, 100], tickvals=[20, 40, 60, 80, 100],
+ticktext=["20%", "40%", "60%", "80%", "100%"])
+),
+font=dict(family="Noto Sans JP, sans-serif", size=12),
+margin=dict(l=40, r=40, t=80, b=60),
+legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1)
 )
 
-# Center annotation for totals and passline note
-fig.add_annotation(text=f"{total_score}/{total_max}<br>{total_pct:.1f}%",
-                   x=0.5, y=0.52, xref='paper', yref='paper', showarrow=False,
-                   font=dict(size=14, color='royalblue', family='Noto Sans JP'))
-fig.add_annotation(text=f"合格ライン: {pass_line}点 ({pass_line/total_max*100:.1f}%)",
-                   x=0.5, y=0.02, xref='paper', yref='paper', showarrow=False,
-                   font=dict(size=12, color='red', family='Noto Sans JP'))
+# 中央注記を少し下にずらす（つぶれ防止）
 
-# Show figure
+fig.add_annotation(
+text=f"{total_score}/{total_max}<br>{total_pct:.1f}%",
+x=0.5, y=0.45, xref="paper", yref="paper", showarrow=False,
+font=dict(size=16, color="royalblue", family="Noto Sans JP")
+)
+fig.add_annotation(
+text=f"合格ライン: {passing_line}点 ({passing_line/total_max*100:.1f}%)",
+x=0.5, y=0.05, xref="paper", yref="paper", showarrow=False,
+font=dict(size=13, color="red", family="Noto Sans JP")
+)
+
 st.plotly_chart(fig, use_container_width=True)
-
-# Note about font: If your environment blocks Google Fonts, the labels may fallback to another font.
-st.caption('フォントは Google Fonts の「Noto Sans JP」を使用します。ネットワーク条件により読み込みできない場合、日本語フォントが代替されることがあります。')
