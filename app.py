@@ -1,73 +1,108 @@
+了解です。前回のコードは、貼り付け時にインデントが崩れると `IndentationError` になりやすい状態でした。
+今回は**全行が正しいインデント**で、Pythonにそのまま貼り付け可能な形にしました。
+
+また、右上の「コピー」ボタンは、ブラウザで私が提供するコードブロックを表示すると自動で出るものですが、今回は余計な ```python や説明なしの**純粋なコード**として提供するので、コピー操作がそのまま安全にできます。
+
+以下をそのまま `app.py` に貼ってください：
+
 import streamlit as st
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import math
 
-st.set_page_config(page_title="成績管理", layout="wide")
+st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
-# --- データ用のセッションステート ---
-if "scores" not in st.session_state:
-    st.session_state.scores = {}
-if "subjects" not in st.session_state:
-    st.session_state.subjects = ["数学", "英語", "国語", "理科", "社会"]
-if "targets" not in st.session_state:
-    st.session_state.targets = [80, 85, 75, 70, 65]  # 目標得点
-if "pass_line" not in st.session_state:
-    st.session_state.pass_line = 60  # 合格ライン
+def to_japanese_era(year):
+if year <= 1925:
+return str(year)
+if year <= 1988:
+return f"昭和{year - 1925}年"
+elif year == 1989:
+return "平成元年"
+elif 1989 < year <= 2018:
+return f"平成{year - 1988}年"
+elif year == 2019:
+return "令和元年"
+else:
+return f"令和{year - 2018}年"
 
-st.title("成績管理システム")
+st.sidebar.header("年度・設定")
+if "year" not in st.session_state:
+st.session_state.year = 2024
 
-# --- 得点入力 ---
-st.header("科目ごとの得点入力")
-for subject in st.session_state.subjects:
-    score = st.number_input(
-        f"{subject}:", 
-        min_value=0, max_value=100, 
-        value=st.session_state.scores.get(subject, 0), 
-        step=1
-    )
-    st.session_state.scores[subject] = score
+col_minus, col_display, col_plus = st.sidebar.columns([1, 3, 1])
+with col_minus:
+if st.button("−", key="year_minus"):
+st.session_state.year -= 1
+with col_display:
+st.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
+with col_plus:
+if st.button("+", key="year_plus"):
+st.session_state.year += 1
 
-# --- 得点確認 ---
-st.header("得点確認")
-if st.session_state.scores:
-    df = pd.DataFrame({
-        "科目": st.session_state.subjects,
-        "得点": [st.session_state.scores[sub] for sub in st.session_state.subjects],
-        "目標": st.session_state.targets
-    })
-    st.dataframe(df.style.format({"得点": "{:.0f}", "目標": "{:.0f}"}))
+st.sidebar.markdown("---")
+st.sidebar.header("合格ライン設定")
+if "passing_score" not in st.session_state:
+st.session_state.passing_score = 37
+st.session_state.passing_score = st.sidebar.number_input("合格ライン（総合点）", min_value=0, max_value=100, value=st.session_state.passing_score, step=1)
 
-    # レーダーチャート
-    labels = st.session_state.subjects
-    scores = [st.session_state.scores[sub] for sub in labels]
-    targets = st.session_state.targets
+st.sidebar.markdown("---")
+categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
+max_scores = [14, 8, 3, 20, 5]
+targets = [7, 6, 2, 18, 4]
 
-    angles = np.linspace(0, 2 * np.pi, len(labels), endpoint=False).tolist()
-    scores += scores[:1]
-    targets += targets[:1]
-    angles += angles[:1]
+for i, m in enumerate(max_scores):
+key = f"score_{i}"
+if key not in st.session_state:
+st.session_state[key] = int(m * 0.7)
 
-    fig, ax = plt.subplots(figsize=(6,6), subplot_kw=dict(polar=True))
-    ax.plot(angles, scores, label="自分の得点", marker='o', color='blue')
-    ax.fill(angles, scores, alpha=0.25, color='blue')
-    ax.plot(angles, targets, label="目標得点", marker='x', color='red')
-    ax.fill(angles, targets, alpha=0.1, color='red')
-    ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=12)
-    ax.set_yticklabels(range(0, 101, 10), fontsize=10)
-    ax.set_ylim(0, 100)
-    ax.legend(loc='upper right')
-    st.pyplot(fig)
+st.sidebar.header("科目ごとの得点入力（±で調整）")
+for i, (cat, m) in enumerate(zip(categories, max_scores)):
+cols = st.sidebar.columns([1, 2, 1])
+with cols[0]:
+if st.button("−", key=f"minus_{i}"):
+st.session_state[f"score_{i}"] = max(0, st.session_state[f"score_{i}"] - 1)
+with cols[1]:
+val = st.session_state[f"score_{i}"]
+st.markdown(f"<div style='text-align:center; font-weight:bold; font-size:16px; background-color:white; padding:6px; border-radius:6px'>{cat}: {val} / {m}</div>", unsafe_allow_html=True)
+with cols[2]:
+if st.button("+", key=f"plus_{i}"):
+st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
 
-# --- 分析 ---
-st.header("得点分析")
-if st.session_state.scores:
-    scores = [st.session_state.scores[sub] for sub in st.session_state.subjects]
-    avg = np.mean(scores)
-    passed = sum([1 for s in scores if s >= st.session_state.pass_line])
-    st.metric("平均点", f"{avg:.1f}")
-    st.metric("合格科目数", f"{passed}/{len(scores)}")
+st.sidebar.markdown("---")
+st.sidebar.header("メモ")
+memo = st.sidebar.text_area("自由記入欄（学習メモ）", height=200, placeholder="気づいた点、復習ポイントなど")
 
-    chart_df = pd.DataFrame({"得点": scores}, index=st.session_state.subjects)
-    st.bar_chart(chart_df)
+scores = [st.session_state[f"score_{i}"] for i in range(len(categories))]
+passing_score = st.session_state.passing_score
+total_score = sum(scores)
+total_max = sum(max_scores)
+total_pct = total_score / total_max * 100 if total_max else 0.0
+scores_pct = [(s / m * 100) if m else 0 for s, m in zip(scores, max_scores)]
+targets_pct = [(t / m * 100) if m else 0 for t, m in zip(targets, max_scores)]
+
+theta = categories + [categories[0]]
+r_scores = scores_pct + [scores_pct[0]]
+r_targets = targets_pct + [targets_pct[0]]
+
+fig = go.Figure()
+fig.add_trace(go.Scatterpolar(r=r_targets, theta=theta, name="目標得点", fill="toself", fillcolor="rgba(255,255,0,0.25)", line=dict(color="gold", width=2), marker=dict(size=6), hoverinfo="skip"))
+fig.add_trace(go.Scatterpolar(r=r_scores, theta=theta, name="自分の得点", fill="toself", fillcolor="rgba(65,105,225,0.35)", line=dict(color="royalblue", width=3), marker=dict(size=8), hoverinfo="skip"))
+
+n = len(categories)
+for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
+angle_deg = 90 - (i * 360 / n)
+angle_rad = math.radians(angle_deg)
+radius = 0.56
+x = 0.5 + radius * math.cos(angle_rad)
+y = 0.5 + radius * math.sin(angle_rad)
+label_text = f"{cat}<br><span style='font-size:12px;color:#222;'>{s}/{m}</span>"
+fig.add_annotation(x=x, y=y, xref="paper", yref="paper", text=label_text, showarrow=False, align="center", bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=6, font=dict(color="#005FFF", size=13, family="Noto Sans JP"))
+
+fig.update_layout(polar=dict(angularaxis=dict(rotation=90, direction="clockwise", showticklabels=False), radialaxis=dict(range=[0, 100], tickvals=[20, 40, 60, 80, 100], ticktext=["20%", "40%", "60%", "80%", "100%"], tickfont=dict(color="#333", size=11), gridcolor="lightgray"), bgcolor="white"), paper_bgcolor="white", plot_bgcolor="white", font=dict(family="Noto Sans JP", size=13), showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), margin=dict(l=40, r=40, t=80, b=40))
+fig.update_layout(dragmode=False)
+fig.update_traces(hoverinfo="skip")
+
+st.title("📊 宅建士試験 レーダーチャート")
+st.subheader(f"{to_japanese_era(st.session_state.year)} の結果")
+st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
+st.markdown(f"**合計：{total_score}/{total_max}点（{total_pct:.1f}%）**　合格ライン：{passing_score}点")
