@@ -47,16 +47,16 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=8)
 ))
 
-# 科目ごとの得点・得点率を科目横に白文字で表示
+# 科目ごとの得点・得点率を科目横に黒色で表示
 texts = [f"{s}/{m} ({p:.0f}%)" for s, m, p in zip(scores, max_scores, scores_pct)]
 texts = texts + [texts[0]]
 fig.add_trace(go.Scatterpolar(
     r=r_scores, theta=theta,
     mode="markers+text",
     text=texts,
-    textposition="middle right",  # 科目横に表示
+    textposition="middle right",
     marker=dict(color="royalblue", size=8),
-    textfont=dict(color="white", size=12, family="Noto Sans JP"),
+    textfont=dict(color="black", size=12, family="Noto Sans JP"),
     showlegend=False
 ))
 
@@ -65,7 +65,8 @@ fig.update_layout(
     polar=dict(
         angularaxis=dict(rotation=90, direction="clockwise"),
         radialaxis=dict(range=[0, 100], tickvals=[20, 40, 60, 80, 100],
-                        ticktext=["20%", "40%", "60%", "80%", "100%"])
+                        ticktext=["20%", "40%", "60%", "80%", "100%"],
+                        tickfont=dict(color="black"))
     ),
     font=dict(family="Noto Sans JP, sans-serif", size=12),
     margin=dict(l=40, r=40, t=80, b=80),
@@ -79,11 +80,18 @@ fig.add_annotation(
     font=dict(size=14, color="red", family="Noto Sans JP"), align="center"
 )
 
-# 総合得点・得点率を合格ラインの下に表示
+# 総合得点・得点率を合格ラインの下に表示（縁取りで見やすく）
+# まず黒で影を描く（少しずらす）
+fig.add_annotation(
+    text=f"総合得点: {total_score}/{total_max} ({total_pct:.1f}%)",
+    x=0.5, y=-0.122, xref="paper", yref="paper", showarrow=False,
+    font=dict(size=14, color="black", family="Noto Sans JP"), align="center"
+)
+# その上に黄色で文字を描く
 fig.add_annotation(
     text=f"総合得点: {total_score}/{total_max} ({total_pct:.1f}%)",
     x=0.5, y=-0.12, xref="paper", yref="paper", showarrow=False,
-    font=dict(size=14, color="royalblue", family="Noto Sans JP"), align="center"
+    font=dict(size=14, color="yellow", family="Noto Sans JP"), align="center"
 )
 
 st.plotly_chart(fig, use_container_width=True)
