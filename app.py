@@ -60,44 +60,70 @@ scores_pct = [(s / m * 100) if m else 0 for s, m in zip(scores, max_scores)]
 targets_pct = [(t / m * 100) if m else 0 for t, m in zip(targets, max_scores)]
 total_exceeded = total_score >= passing_score
 
-# 背景色切替・文字色
+# 背景色切替・文字色（合格時）
 if total_exceeded:
     st.markdown("""
     <style>
     .stApp {background-color: #ffe6f0 !important; color: black !important;}
     .css-1v3fvcr, .css-1d391kg {color: black !important;}
+    .sidebar .css-1d391kg {background-color: #ffe6f0 !important;}
     </style>
     """, unsafe_allow_html=True)
 
 # 得点表
 st.subheader("得点表")
-
-def highlight_score(val, target):
-    if val >= target:
-        return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
-    else:
-        return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:14px;'
-
 df_scores = pd.DataFrame({
     "科目": categories,
     "自分の得点": scores,
     "目標得点": targets,
-    "満点": max_scores
+    "満点": max_scores,
+    "合計": [total_score]*len(categories)
 })
 
+def highlight_score(val, col_name):
+    if col_name == "自分の得点":
+        idx = df_scores.columns.get_loc("自分の得点")
+        target = df_scores["目標得点"][idx]
+        if val >= target:
+            return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
+        else:
+            return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:14px;'
+    elif col_name == "合計":
+        if total_score >= passing_score:
+            return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
+        else:
+            return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:16px;'
+    else:
+        return 'text-align:center;'
+
 df_styled = df_scores.style.apply(
-    lambda row: [highlight_score(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index],
+    lambda row: [highlight_score(row[col], col) for col in df_scores.columns],
     axis=1
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 st.dataframe(df_styled, height=250)
 
-# 合格表示（得点表下に追加）
+# ゴージャス合格表示（軽量アニメーション・pulse＋float）
 if total_exceeded:
-    st.markdown(f"""
-    <div style='margin-top:10px; text-align:center; font-size:28px; font-weight:bold; color:royalblue;'>
-        🌸 合格！おめでとうございます！🌸
-    </div>
+    st.markdown("""
+    <style>
+    @keyframes floatPulse {
+        0% {transform: translateY(0px) scale(1);}
+        50% {transform: translateY(-10px) scale(1.1);}
+        100% {transform: translateY(0px) scale(1);}
+    }
+    .celebrate {
+        font-size:42px;
+        font-weight:bold;
+        text-align:center;
+        background: linear-gradient(90deg, #ff69b4, #ff1493, #ff69b4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: floatPulse 1.5s ease-in-out infinite;
+        text-shadow: 2px 2px 10px pink;
+    }
+    </style>
+    <div class="celebrate">🌸 合格！おめでとうございます！🌸</div>
     """, unsafe_allow_html=True)
 
 # レーダーチャート
@@ -124,8 +150,7 @@ fig.update_layout(
     polar=dict(
         angularaxis=dict(rotation=90, direction="clockwise",
                          showticklabels=True,
-                         tickfont=dict(size=14, color="black", family="Noto Sans JP"),
-                         tickcolor="black"),
+                         tickfont=dict(size=14, color="black", family="Noto Sans JP")),
         radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
                         ticktext=["20%","40%","60%","80%","100%"],
                         tickfont=dict(color="#333", size=12),
