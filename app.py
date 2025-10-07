@@ -4,6 +4,16 @@ import pandas as pd
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
+# --- CSSでタイトル右のコピー用カプセルを非表示 ---
+hide_copy_css = """
+<style>
+div[data-testid="stMarkdownContainer"] > .css-1d391kg {
+    display: none;
+}
+</style>
+"""
+st.markdown(hide_copy_css, unsafe_allow_html=True)
+
 def to_japanese_era(year):
     if year <= 1925:
         return str(year)
@@ -127,20 +137,27 @@ fig.update_layout(
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=13),
     showlegend=False,
-    margin=dict(l=40,r=40,t=80,b=40)
+    margin=dict(l=40,r=40,t=100,b=40)
 )
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
 
-st.title("📊 宅建士試験 レーダーチャート")
-st.subheader(f"{to_japanese_era(st.session_state.year)} の結果")
+# --- タイトル・チャート表示 ---
+st.markdown(f"<h1 style='display:inline-block'>📊 宅建士試験 レーダーチャート</h1>", unsafe_allow_html=True)
+st.markdown(f"<h3 style='display:inline-block; margin-left:10px'>{to_japanese_era(st.session_state.year)} の結果</h3>", unsafe_allow_html=True)
+
+# --- 凡例をチャート上部に横並び表示 ---
+st.markdown("""
+<div style="display:flex; gap:20px; margin-top:10px; margin-bottom:10px;">
+<div style="color:royalblue; font-weight:bold;">🔹 自分の得点</div>
+<div style="color:lightcoral; font-weight:bold;">🔴 目標得点</div>
+</div>
+""", unsafe_allow_html=True)
+
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
-# --- 凡例をチャート外に表示 ---
-st.markdown("""
-**凡例：**  
-- 🔹 青線：自分の得点  
-- 🔴 薄赤線：目標得点
-""")
-
-st.markdown(f"**合計：{total_score}/{total_max}点（{total_pct:.1f}%）**　合格ライン：{passing_score}点")
+# --- 合計・合格ラインを目立たせる ---
+st.markdown(f"""
+<div style='font-size:20px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
+<div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
+""", unsafe_allow_html=True)
