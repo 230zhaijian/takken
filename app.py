@@ -73,32 +73,32 @@ if total_exceeded:
 st.subheader("得点表")
 
 def highlight_score(val, target):
-    if isinstance(val, str) and "合格" in val:
-        return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
-    elif val >= target:
+    if val >= target:
         return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
     else:
         return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:14px;'
 
-def format_score_cell(val, target):
-    if val >= target:
-        return f"{val}\n合格！🌸"
-    else:
-        return str(val)
-
-df_display = pd.DataFrame({
+df_scores = pd.DataFrame({
     "科目": categories,
-    "自分の得点": [format_score_cell(s, t) for s, t in zip(scores, targets)],
+    "自分の得点": scores,
     "目標得点": targets,
     "満点": max_scores
 })
 
-df_styled = df_display.style.apply(
+df_styled = df_scores.style.apply(
     lambda row: [highlight_score(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index],
     axis=1
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 st.dataframe(df_styled, height=250)
+
+# 合格表示（得点表下に追加）
+if total_exceeded:
+    st.markdown(f"""
+    <div style='margin-top:10px; text-align:center; font-size:28px; font-weight:bold; color:royalblue;'>
+        🌸 合格！おめでとうございます！🌸
+    </div>
+    """, unsafe_allow_html=True)
 
 # レーダーチャート
 theta = categories + [categories[0]]
@@ -154,7 +154,6 @@ st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "disp
 st.markdown(f"""
 <div style='display:flex; align-items:center; gap:15px; margin-top:10px;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
-    {"<div style='font-size:40px;'>🌸 合格！</div>" if total_exceeded else ""}
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
