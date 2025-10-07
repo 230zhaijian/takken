@@ -46,38 +46,29 @@ r_score += [r_score[0]]
 r_target = [t/m*100 for t,m in zip(target_scores, max_scores)]
 r_target += [r_target[0]]
 
-# 科目ラベル色と強調設定
-label_annotations = []
-for i, (s, t, cat) in enumerate(zip(scores, target_scores, categories)):
+# 科目ラベル色リスト（未達：赤、達成：青、超過：青太字大）
+label_colors = []
+label_sizes = []
+label_weights = []
+for s, t in zip(scores, target_scores):
     if s < t:
-        color = 'red'
-        font_size = 12
-        font_weight = 'normal'
-        decoration = 'none'
+        label_colors.append('red')
+        label_sizes.append(12)
+        label_weights.append('normal')
     elif s == t:
-        color = 'blue'
-        font_size = 12
-        font_weight = 'bold'
-        decoration = 'none'
+        label_colors.append('blue')
+        label_sizes.append(12)
+        label_weights.append('bold')
     else:  # 超過
-        color = 'blue'
-        font_size = 14  # 大きく
-        font_weight = 'bold'
-        decoration = 'underline'
-    label_annotations.append(
-        dict(
-            x=i,
-            y=105,  # 少し外に
-            text=cat,
-            showarrow=False,
-            font=dict(color=color, size=font_size, family='Noto Sans JP', weight=font_weight),
-            textangle=0
-        )
-    )
-
-fig = go.Figure()
+        label_colors.append('blue')
+        label_sizes.append(14)
+        label_weights.append('bold')
+label_colors += [label_colors[0]]
+label_sizes += [label_sizes[0]]
+label_weights += [label_weights[0]]
 
 # 自分の得点（青）
+fig = go.Figure()
 fig.add_trace(go.Scatterpolar(
     r=r_score,
     theta=theta,
@@ -96,17 +87,32 @@ fig.add_trace(go.Scatterpolar(
     opacity=0.3
 ))
 
+# レーダーチャートのラベルは angularaxis で設定しつつ、tickfontは黒にして注釈で色を付ける
 fig.update_layout(
     polar=dict(
-        angularaxis=dict(showticklabels=False),  # ラベルはannotationで表示
+        angularaxis=dict(
+            tickmode='array',
+            tickvals=list(range(len(categories))),
+            ticktext=categories,
+            tickfont=dict(color='black', size=12)
+        ),
         radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
                         ticktext=["20%","40%","60%","80%","100%"])
     ),
     showlegend=True,
-    annotations=label_annotations,
     width=700,
     height=500
 )
+
+# 注釈で色・太さを付与
+for i, cat in enumerate(categories):
+    fig.add_annotation(
+        x=i,
+        y=105,
+        text=cat,
+        showarrow=False,
+        font=dict(color=label_colors[i], size=label_sizes[i], family='Noto Sans JP', weight=label_weights[i])
+    )
 
 st.plotly_chart(fig, use_container_width=True)
 
