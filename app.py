@@ -163,10 +163,10 @@ st.markdown(f"""
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
 
-# 花びらアニメーション（全画面）
+# 花びらアニメーション（全画面・上部背景含む）
 if total_exceeded:
     petals_html = """
-    <canvas id="petals" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;"></canvas>
+    <canvas id="petals" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
     <script>
     const canvas=document.getElementById('petals');
     function resizeCanvas(){canvas.width=window.innerWidth; canvas.height=window.innerHeight;}
