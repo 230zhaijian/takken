@@ -49,14 +49,19 @@ for i, m in enumerate(max_scores):
     if key not in st.session_state:
         st.session_state[key] = int(m * 0.7)
 
-# --- 科目入力（縦並び） ---
-st.sidebar.header("科目ごとの得点入力（±で調整）")
+# --- 科目入力（縦スクロール前提で独立表示） ---
+st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
-    st.sidebar.markdown(f"**{cat} ({st.session_state[f'score_{i}']}/{m})**")
-    if st.sidebar.button(f"＋ {cat}", key=f"plus_{i}"):
-        st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
-    if st.sidebar.button(f"− {cat}", key=f"minus_{i}"):
-        st.session_state[f"score_{i}"] = max(st.session_state[f"score_{i}"] - 1, 0)
+    st.sidebar.markdown(f"**{cat}**")
+    cols = st.sidebar.columns([1,1,2])
+    with cols[0]:
+        if st.button("−", key=f"minus_{i}"):
+            st.session_state[f"score_{i}"] = max(st.session_state[f"score_{i}"] - 1, 0)
+    with cols[1]:
+        st.markdown(f"<div style='text-align:center;font-weight:bold;font-size:16px'>{st.session_state[f'score_{i}']} / {m}</div>", unsafe_allow_html=True)
+    with cols[2]:
+        if st.button("＋", key=f"plus_{i}"):
+            st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
 
 st.sidebar.markdown("---")
 st.sidebar.header("メモ")
@@ -71,7 +76,7 @@ total_pct = total_score / total_max * 100 if total_max else 0.0
 scores_pct = [(s / m * 100) if m else 0 for s, m in zip(scores, max_scores)]
 targets_pct = [(t / m * 100) if m else 0 for t, m in zip(targets, max_scores)]
 
-# --- 得点表 ---
+# --- 得点表（達成なら薄青、未達なら薄赤） ---
 st.subheader("得点表")
 df_scores = pd.DataFrame({
     "科目": categories,
@@ -80,15 +85,15 @@ df_scores = pd.DataFrame({
     "満点": max_scores
 })
 
-def color_score(val, target):
-    return 'color: royalblue; font-weight:bold;' if val >= target else 'color: red; font-weight:bold;'
+def highlight_cell(val, target):
+    color = "lightblue" if val >= target else "lightcoral"
+    return f'background-color: {color}; font-weight:bold;'
 
 df_styled = df_scores.style.format({
     "自分の得点":"{:.0f}",
     "目標得点":"{:.0f}",
     "満点":"{:.0f}"
-}).apply(lambda x: [color_score(v, t) if col=="自分の得点" else "" 
-                    for v,t,col in zip(x, targets, x.index)], axis=1)
+}).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else "" for col in row.index], axis=1)
 
 st.dataframe(df_styled, height=250)
 
@@ -109,12 +114,12 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=10), hoverinfo="skip"
 ))
 
-# --- ラベル（外側にずらして表示） ---
+# --- ラベル（絶対座標固定＋フォント大きめ＋色分け） ---
 n = len(categories)
 for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
     angle_deg = 90 - (i*360/n)
     angle_rad = math.radians(angle_deg)
-    radius = 0.65  # 外側にずらす
+    radius = 0.6
     x = 0.5 + radius * math.cos(angle_rad)
     y = 0.5 + radius * math.sin(angle_rad)
     label_color = "royalblue" if s >= targets[i] else "red"
@@ -123,7 +128,7 @@ for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
         x=x, y=y, xref="paper", yref="paper", text=label_text,
         showarrow=False, align="center",
         font=dict(color=label_color, size=14, family="Noto Sans JP"),
-        bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=4
+        bgcolor="rgba(255,255,255,0.9)", bordercolor="rgba(0,0,0,0.06)", borderpad=4
     )
 
 fig.update_layout(
