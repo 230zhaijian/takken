@@ -32,15 +32,17 @@ r_target = [t/m*100 for t,m in zip(target_scores, max_scores)]
 r_target += [r_target[0]]
 
 fig = go.Figure()
-# 目標得点：薄いイエロー
+
+# 目標得点：普通の黄色
 fig.add_trace(go.Scatterpolar(
     r=r_target,
     theta=theta,
     fill='toself',
     name='目標得点',
-    line=dict(color='gold', width=1),
-    opacity=0.3
+    line=dict(color='yellow', width=2),
+    opacity=0.5
 ))
+
 # 自分の得点
 fig.add_trace(go.Scatterpolar(
     r=r_score,
@@ -49,6 +51,18 @@ fig.add_trace(go.Scatterpolar(
     name='自分の得点',
     line=dict(color='royalblue', width=3),
     marker=dict(color='royalblue', size=10)
+))
+
+# 目標達成部分を緑で表示
+r_overlap = [min(s, t) for s, t in zip(r_score, r_target)]
+r_overlap += [r_overlap[0]]
+fig.add_trace(go.Scatterpolar(
+    r=r_overlap,
+    theta=theta,
+    fill='toself',
+    name='目標達成部分',
+    line=dict(color='green', width=0),
+    fillcolor='rgba(0,255,0,0.3)'
 ))
 
 fig.update_layout(
@@ -73,16 +87,16 @@ for i, cat in enumerate(categories):
         "得点": scores[i],
         "満点": max_scores[i],
         "目標": target_scores[i],
-        "目標達成率": achieved_target_pct,
-        "満点達成率": achieved_full_pct
+        "目標達成率": f"{achieved_target_pct:.0f}%",
+        "満点達成率": f"{achieved_full_pct:.0f}%"
     })
 table_data.append({
     "科目": "合計",
     "得点": total_score,
     "満点": sum(max_scores),
     "目標": passing_line,
-    "目標達成率": min(total_score/passing_line*100, 100) if passing_line>0 else 100,
-    "満点達成率": total_score/sum(max_scores)*100
+    "目標達成率": f"{min(total_score/passing_line*100,100):.0f}%",
+    "満点達成率": f"{total_score/sum(max_scores)*100:.0f}%"
 })
 
 df = pd.DataFrame(table_data)
@@ -90,26 +104,19 @@ df = pd.DataFrame(table_data)
 # ハイライト：目標未達は赤背景＋白文字
 def highlight_target(val, target):
     try:
-        if val < target:
+        if isinstance(val, int) and val < target:
             return 'background-color: #FF6347; color: white; font-weight: bold'
     except:
         pass
     return ''
 
-# スタイル設定
 def style_row(row):
-    styles = []
-    for col in df.columns:
-        if col == "得点":
-            styles.append(highlight_target(row[col], row["目標"]))
-        else:
-            styles.append("")
-    return styles
+    return [highlight_target(row['得点'], row['目標']) if col=='得点' else "" for col in row.index]
 
 df_styled = df.style.apply(style_row, axis=1)
 
-# 達成率にバーを追加
-df_styled = df_styled.bar(subset=["目標達成率"], color='#FFD700', vmin=0, vmax=100)
-df_styled = df_styled.bar(subset=["満点達成率"], color='#87CEFA', vmin=0, vmax=100)
+# 達成率列に色付きバー
+df_styled = df_styled.bar(subset=["目標達成率"], color='#32CD32', vmin=0, vmax=100)
+df_styled = df_styled.bar(subset=["満点達成率"], color='#1E90FF', vmin=0, vmax=100)
 
 st.dataframe(df_styled, use_container_width=True)
