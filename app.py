@@ -67,7 +67,8 @@ fig.add_trace(go.Scatterpolar(
 
 fig.update_layout(
     polar=dict(
-        radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100], ticktext=["20%","40%","60%","80%","100%"])
+        radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
+                        ticktext=["20%","40%","60%","80%","100%"])
     ),
     showlegend=True,
     width=700,
@@ -78,36 +79,37 @@ st.plotly_chart(fig, use_container_width=True)
 # --- 得点表 ---
 st.subheader(f"📋 {year} 得点表")
 total_score = sum(scores)
+
 table_data = []
 for i, cat in enumerate(categories):
-    achieved_target_pct = min(scores[i]/target_scores[i]*100, 100) if target_scores[i]>0 else 100
+    achieved_target_pct = scores[i]/target_scores[i]*100 if target_scores[i]>0 else 100
     achieved_full_pct = scores[i]/max_scores[i]*100 if max_scores[i]>0 else 0
     table_data.append({
         "科目": cat,
         "得点": scores[i],
         "満点": max_scores[i],
         "目標": target_scores[i],
-        "目標達成率": f"{achieved_target_pct:.0f}%",
-        "満点達成率": f"{achieved_full_pct:.0f}%"
+        "目標達成率(%)": achieved_target_pct,
+        "満点達成率(%)": achieved_full_pct
     })
 table_data.append({
     "科目": "合計",
     "得点": total_score,
     "満点": sum(max_scores),
     "目標": passing_line,
-    "目標達成率": f"{min(total_score/passing_line*100,100):.0f}%",
-    "満点達成率": f"{total_score/sum(max_scores)*100:.0f}%"
+    "目標達成率(%)": total_score/passing_line*100 if passing_line>0 else 100,
+    "満点達成率(%)": total_score/sum(max_scores)*100
 })
 
 df = pd.DataFrame(table_data)
 
-# ハイライト：目標未達は赤背景＋白文字
+# ハイライト：目標未達は赤背景＋白文字、達成は緑背景
 def highlight_target(val, target):
-    try:
-        if isinstance(val, int) and val < target:
-            return 'background-color: #FF6347; color: white; font-weight: bold'
-    except:
-        pass
+    if isinstance(val, (int, float)):
+        if val >= target:
+            return 'background-color: #32CD32; color: black; font-weight: bold'  # 緑
+        else:
+            return 'background-color: #FF6347; color: white; font-weight: bold'  # 赤
     return ''
 
 def style_row(row):
@@ -115,8 +117,11 @@ def style_row(row):
 
 df_styled = df.style.apply(style_row, axis=1)
 
-# 達成率列に色付きバー
-df_styled = df_styled.bar(subset=["目標達成率"], color='#32CD32', vmin=0, vmax=100)
-df_styled = df_styled.bar(subset=["満点達成率"], color='#1E90FF', vmin=0, vmax=100)
+# 達成率列に色付きバー（数値なので%表記は保持）
+df_styled = df_styled.bar(subset=["目標達成率(%)"], color='#32CD32', vmin=0, vmax=100)
+df_styled = df_styled.bar(subset=["満点達成率(%)"], color='#1E90FF', vmin=0, vmax=100)
+
+# %表記のためformat
+df_styled.format({"目標達成率(%)": "{:.0f}%", "満点達成率(%)": "{:.0f}%"})
 
 st.dataframe(df_styled, use_container_width=True)
