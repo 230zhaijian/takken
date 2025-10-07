@@ -98,7 +98,6 @@ r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
 
 fig = go.Figure()
-# 目標得点線（薄赤）
 fig.add_trace(go.Scatterpolar(
     r=r_targets, theta=theta, name="目標得点",
     fill="toself", fillcolor="rgba(255,0,0,0.15)",
@@ -106,7 +105,6 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=8),
     hoverinfo="skip"
 ))
-# 自分の得点線（青）
 fig.add_trace(go.Scatterpolar(
     r=r_scores, theta=theta, name="自分の得点",
     fill="toself", fillcolor="rgba(65,105,225,0.25)",
@@ -114,7 +112,6 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=10),
     hoverinfo="skip"
 ))
-
 fig.update_layout(
     polar=dict(
         angularaxis=dict(rotation=90, direction="clockwise",
@@ -135,7 +132,6 @@ fig.update_layout(
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
 
-# タイトル・凡例
 st.markdown(f"<h1 style='display:inline-block'>📊 宅建士試験 レーダーチャート</h1>", unsafe_allow_html=True)
 st.markdown(f"<h3 style='display:inline-block; margin-left:10px'>{to_japanese_era(st.session_state.year)} の結果</h3>", unsafe_allow_html=True)
 st.markdown("""
@@ -153,8 +149,6 @@ st.markdown("""
 .pop-emoji {display:inline-block; animation: poprotate 1.5s infinite;}
 </style>
 """, unsafe_allow_html=True)
-
-# 合計・合格ライン表示
 st.markdown(f"""
 <div style='display:flex; align-items:center; gap:15px;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
@@ -163,66 +157,59 @@ st.markdown(f"""
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
 
-# 花びらアニメーション（全画面・上部背景含む）
+# 花びらアニメーション（全画面・描画遅延で確実に表示）
 if total_exceeded:
     petals_html = """
-    <canvas id="petals" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></canvas>
+    <div id="petal-container" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></div>
     <script>
-    const canvas=document.getElementById('petals');
-    function resizeCanvas(){canvas.width=window.innerWidth; canvas.height=window.innerHeight;}
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    const ctx=canvas.getContext('2d');
-    const petals=[];
-    const colors=['#FFC0CB','#FFB6C1','#FF69B4','#FF1493','#FFD700'];
-    const shapes=['circle','heart','star'];
-    function drawShape(p){
-        ctx.fillStyle=p.color;
-        ctx.save();
-        ctx.translate(p.x,p.y);
-        ctx.rotate(p.rotation);
-        switch(p.shape){
-            case 'circle': ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill(); break;
-            case 'heart':
-                ctx.beginPath();
-                const x=0,y=0;
-                ctx.moveTo(x,y);
-                ctx.bezierCurveTo(x,y-p.r,x-p.r,y-p.r,x-p.r,y);
-                ctx.bezierCurveTo(x-p.r,y+p.r,x,y+p.r,x,y+p.r/2);
-                ctx.bezierCurveTo(x,y+p.r,x+p.r,y+p.r,x+p.r,y);
-                ctx.bezierCurveTo(x+p.r,y-p.r,x,y-p.r,x,y);
-                ctx.fill();
-                break;
-            case 'star':
-                ctx.beginPath();
-                for(let i=0;i<5;i++){
-                    ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*p.r,-Math.sin((18+i*72)/180*Math.PI)*p.r);
-                    ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*(p.r/2),-Math.sin((54+i*72)/180*Math.PI)*(p.r/2));
-                }
-                ctx.closePath();
-                ctx.fill();
-                break;
+    setTimeout(() => {
+        const container = document.getElementById('petal-container');
+        const canvas = document.createElement('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        container.appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+        const petals=[];
+        const colors=['#FFC0CB','#FFB6C1','#FF69B4','#FF1493','#FFD700'];
+        for(let i=0;i<50;i++){
+            petals.push({
+                x: Math.random()*canvas.width,
+                y: Math.random()*canvas.height,
+                r: Math.random()*8+3,
+                d: Math.random()*1+0.5,
+                color: colors[Math.floor(Math.random()*colors.length)],
+                tilt: Math.random()*0.5-0.25,
+                rotation: Math.random()*2*Math.PI,
+                rotationSpeed: Math.random()*0.02-0.01
+            });
         }
-        ctx.restore();
-    }
-    for(let i=0;i<50;i++){
-        petals.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*8+3,d:Math.random()*1+0.5,color:colors[Math.floor(Math.random()*colors.length)],tilt:Math.random()*0.5-0.25,rotation:Math.random()*2*Math.PI,rotationSpeed:Math.random()*0.02-0.01,shape:shapes[Math.floor(Math.random()*shapes.length)]});
-    }
-    function draw(){
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        for(let i=0;i<petals.length;i++){
-            let p=petals[i];
-            drawShape(p);
-            p.y+=p.d;
-            p.x+=Math.sin(p.tilt);
-            p.rotation+=p.rotationSpeed;
-            if(p.y>canvas.height){p.y=0;p.x=Math.random()*canvas.width;}
-            if(p.x>canvas.width){p.x=0;}
-            if(p.x<0){p.x=canvas.width;}
+
+        function drawPetals(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            for(let p of petals){
+                ctx.save();
+                ctx.translate(p.x,p.y);
+                ctx.rotate(p.rotation);
+                ctx.fillStyle=p.color;
+                ctx.beginPath();
+                ctx.arc(0,0,p.r,0,Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+
+                p.y += p.d;
+                p.x += Math.sin(p.tilt);
+                p.rotation += p.rotationSpeed;
+                if(p.y>canvas.height) p.y=0,p.x=Math.random()*canvas.width;
+                if(p.x>canvas.width) p.x=0;
+                if(p.x<0) p.x=canvas.width;
+            }
+            requestAnimationFrame(drawPetals);
         }
-        requestAnimationFrame(draw);
-    }
-    draw();
+        drawPetals();
+    }, 100);
     </script>
     """
     html(petals_html, height=0)
