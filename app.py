@@ -36,7 +36,7 @@ for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
-# 科目入力（スピナーUI）
+# 科目入力（スピナーUI、タップ後スワイプ可能）
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
     val = st.sidebar.number_input(
@@ -93,9 +93,11 @@ df_styled = df_scores.style.apply(
     lambda row: [highlight_score(row[col], col, row) for col in df_scores.columns], axis=1
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
+# タイトル表示
+st.markdown("<h2>📊 宅建士試験 得点表</h2>", unsafe_allow_html=True)
 st.dataframe(df_styled, height=300)
 
-# ゴージャス合格表示
+# 合格表示
 if total_exceeded:
     st.markdown("""
     <style>
@@ -118,24 +120,32 @@ if total_exceeded:
     <div class="celebrate">🌸 合格！おめでとうございます！🌸</div>
     """, unsafe_allow_html=True)
 
-# レーダーチャート
+# レーダーチャート（科目名の横に得点表示）
 theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
+score_texts = [f"{s}/{m}" for s,m in zip(scores, max_scores)] + [f"{scores[0]}/{max_scores[0]}"]
+target_texts = [f"{t}/{m}" for t,m in zip(targets, max_scores)] + [f"{targets[0]}/{max_scores[0]}"]
 
 fig = go.Figure()
 fig.add_trace(go.Scatterpolar(
-    r=r_targets, theta=theta, name="目標得点",
+    r=r_targets, theta=theta,
+    name="目標得点",
     fill="toself", fillcolor="rgba(255,0,0,0.15)",
     line=dict(color="lightcoral", width=3),
     marker=dict(size=8),
+    text=target_texts,
+    textposition="top center",
     hoverinfo="skip"
 ))
 fig.add_trace(go.Scatterpolar(
-    r=r_scores, theta=theta, name="自分の得点",
+    r=r_scores, theta=theta,
+    name="自分の得点",
     fill="toself", fillcolor="rgba(65,105,225,0.25)",
     line=dict(color="royalblue", width=3),
     marker=dict(size=10),
+    text=score_texts,
+    textposition="bottom center",
     hoverinfo="skip"
 ))
 fig.update_layout(
@@ -157,14 +167,7 @@ fig.update_layout(
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
 
-st.markdown(f"<h1 style='display:inline-block'>📊 宅建士試験 レーダーチャート</h1>", unsafe_allow_html=True)
-st.markdown(f"<h3 style='display:inline-block; margin-left:10px'>{to_japanese_era(st.session_state.year)} の結果</h3>", unsafe_allow_html=True)
-st.markdown("""
-<div style="display:flex; gap:20px; margin-top:10px; margin-bottom:10px;">
-<div style="color:royalblue; font-weight:bold;">🔹 自分の得点</div>
-<div style="color:lightcoral; font-weight:bold;">🔴 目標得点</div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(f"<h2>📊 宅建士試験 レーダーチャート</h2>", unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
 # 合計得点表示
@@ -172,5 +175,4 @@ st.markdown(f"""
 <div style='display:flex; align-items:center; gap:15px; margin-top:10px;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
-<div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
-""", unsafe_allow_html=True)
+<div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点
