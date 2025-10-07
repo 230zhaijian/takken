@@ -5,11 +5,9 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="宅建士試験分析", layout="wide")
 st.title("📊 宅建士試験 レーダーチャート＋得点表")
 
-# サイドバーにメモ欄
+# --- サイドバーにメモ欄 ---
 st.sidebar.subheader("📝 メモ")
-memo = st.sidebar.text_area("ここにメモを入力できます", height=300)
-if memo:
-    st.sidebar.info("入力中のメモを確認できます")
+memo = st.sidebar.text_area("ここにメモを入力できます", height=200)
 
 # 年度入力
 year = st.text_input("年度", "令和5年")
@@ -23,14 +21,15 @@ target_scores = [7, 6, 2, 18, 4]
 if 'scores' not in st.session_state:
     st.session_state.scores = [int(m*0.7) for m in max_scores]
 
-st.subheader("科目ごとの得点を入力（＋/−で簡単調整）")
+# --- 科目ごとの得点入力 ---
+st.subheader("科目ごとの得点を入力（＋/−で調整）")
 for i, cat in enumerate(categories):
     col1, col2, col3 = st.columns([1,1,1])
     with col1:
         if st.button(f"{cat} −", key=f"minus_{i}"):
             st.session_state.scores[i] = max(0, st.session_state.scores[i]-1)
     with col2:
-        st.markdown(f"**{st.session_state.scores[i]} / {max_scores[i]}**  (目標: {target_scores[i]})")
+        st.markdown(f"<div style='text-align:center; font-weight:bold'>{st.session_state.scores[i]} / {max_scores[i]}</div>", unsafe_allow_html=True)
     with col3:
         if st.button(f"{cat} ＋", key=f"plus_{i}"):
             st.session_state.scores[i] = min(max_scores[i], st.session_state.scores[i]+1)
@@ -41,77 +40,81 @@ passing_line = st.number_input("合格ライン点数", min_value=0, max_value=s
 # --- レーダーチャート ---
 st.subheader(f"📈 {year} レーダーチャート")
 theta = categories + [categories[0]]
-r_score = [s/m*100 for s,m in zip(scores, max_scores)]
-r_score += [r_score[0]]
-r_target = [t/m*100 for t,m in zip(target_scores, max_scores)]
-r_target += [r_target[0]]
+r_score = [s/m*100 for s,m in zip(scores, max_scores)] + [scores[0]/max_scores[0]*100]
+r_target = [t/m*100 for t,m in zip(target_scores, max_scores)] + [target_scores[0]/max_scores[0]*100]
 
-# 科目ラベル色リスト（未達：赤、達成：青、超過：青太字大）
+# --- 科目ラベル色・サイズ ---
 label_colors = []
 label_sizes = []
-label_weights = []
 for s, t in zip(scores, target_scores):
     if s < t:
         label_colors.append('red')
         label_sizes.append(12)
-        label_weights.append('normal')
     elif s == t:
         label_colors.append('blue')
         label_sizes.append(12)
-        label_weights.append('bold')
-    else:  # 超過
+    else:
         label_colors.append('blue')
         label_sizes.append(14)
-        label_weights.append('bold')
-label_colors += [label_colors[0]]
-label_sizes += [label_sizes[0]]
-label_weights += [label_weights[0]]
 
-# 自分の得点（青）
+# --- レーダーチャート作成 ---
 fig = go.Figure()
+
+# 自分の得点
 fig.add_trace(go.Scatterpolar(
     r=r_score,
     theta=theta,
     name='自分の得点',
     line=dict(color='royalblue', width=3),
-    marker=dict(color='royalblue', size=10)
+    marker=dict(color='royalblue', size=8),
+    text=[f"{s}/{m}" for s,m in zip(scores, max_scores)],
+    textposition='top center',
+    mode='lines+markers+text'
 ))
 
-# 目標得点（緑）
+# 目標得点
 fig.add_trace(go.Scatterpolar(
     r=r_target,
     theta=theta,
     name='目標得点',
     line=dict(color='green', width=2),
     fill='toself',
-    opacity=0.3
+    opacity=0.3,
+    text=[f"{t}/{m}" for t,m in zip(target_scores, max_scores)],
+    textposition='bottom center',
+    mode='lines+markers+text'
 ))
 
-# レーダーチャートのラベルは angularaxis で設定しつつ、tickfontは黒にして注釈で色を付ける
+# レイアウト
 fig.update_layout(
     polar=dict(
+        bgcolor="#F8F8F8",  # 薄グレー背景
         angularaxis=dict(
             tickmode='array',
             tickvals=list(range(len(categories))),
             ticktext=categories,
             tickfont=dict(color='black', size=12)
         ),
-        radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
-                        ticktext=["20%","40%","60%","80%","100%"])
+        radialaxis=dict(
+            range=[0,100],
+            tickvals=[20,40,60,80,100],
+            ticktext=["20%","40%","60%","80%","100%"],
+            tickfont=dict(color='black')
+        )
     ),
-    showlegend=True,
     width=700,
-    height=500
+    height=400,
+    showlegend=True
 )
 
-# 注釈で色・太さを付与
+# 科目名をラベルとして外側に注釈
 for i, cat in enumerate(categories):
     fig.add_annotation(
         x=i,
-        y=105,
-        text=cat,
+        y=110,
+        text=f"<b>{cat}</b>",
         showarrow=False,
-        font=dict(color=label_colors[i], size=label_sizes[i], family='Noto Sans JP', weight=label_weights[i])
+        font=dict(color=label_colors[i], size=label_sizes[i])
     )
 
 st.plotly_chart(fig, use_container_width=True)
