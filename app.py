@@ -73,13 +73,13 @@ df_scores = pd.DataFrame({
 
 def highlight_cell(val, target):
     color = "lightblue" if val >= target else "lightcoral"
-    return f'background-color: {color}; font-weight:bold;'
+    return f'background-color: {color}; font-weight:bold; text-align:center;'
 
 df_styled = df_scores.style.format({
     "自分の得点":"{:.0f}",
     "目標得点":"{:.0f}",
     "満点":"{:.0f}"
-}).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else "" for col in row.index], axis=1)
+}).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index], axis=1)
 
 st.dataframe(df_styled, height=250)
 
@@ -89,7 +89,7 @@ r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
 
 fig = go.Figure()
-# 目標得点線（薄い赤）
+# 目標得点線（薄赤）
 fig.add_trace(go.Scatterpolar(
     r=r_targets, theta=theta, name="目標得点",
     fill="toself", fillcolor="rgba(255,0,0,0.15)",
@@ -108,7 +108,10 @@ fig.add_trace(go.Scatterpolar(
 
 fig.update_layout(
     polar=dict(
-        angularaxis=dict(rotation=90, direction="clockwise", showticklabels=True),
+        angularaxis=dict(rotation=90, direction="clockwise",
+                         showticklabels=True,
+                         tickfont=dict(size=14, color="black", family="Noto Sans JP"),
+                         tickcolor="black"),
         radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
                         ticktext=["20%","40%","60%","80%","100%"],
                         tickfont=dict(color="#333", size=12),
@@ -117,11 +120,7 @@ fig.update_layout(
     ),
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=13),
-    showlegend=True,
-    legend=dict(
-        orientation="v", yanchor="top", y=1, xanchor="right", x=1.05,
-        title="凡例", font=dict(size=12)
-    ),
+    showlegend=False,
     margin=dict(l=40,r=80,t=80,b=40)
 )
 fig.update_layout(dragmode=False)
@@ -131,7 +130,7 @@ st.title("📊 宅建士試験 レーダーチャート")
 st.subheader(f"{to_japanese_era(st.session_state.year)} の結果")
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
-# --- レーダーチャート線の色説明 ---
+# --- 線の色説明 ---
 st.markdown("""
 **凡例：**  
 - 🔹 青線：自分の得点  
