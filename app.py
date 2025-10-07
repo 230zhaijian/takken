@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
+from streamlit.components.v1 import html
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
@@ -174,8 +175,19 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 合計・合格ライン表示（はなまる付き） ---
+# --- 合計・合格ライン表示（はなまる＋背景・花びらエフェクト） ---
 total_exceeded = total_score >= passing_score
+
+# 背景色変更
+if total_exceeded:
+    st.markdown("""
+    <style>
+    .stApp {
+        background-color: #ffe6f0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.markdown(f"""
 <div style='display:flex; align-items:center; gap:15px;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
@@ -183,3 +195,43 @@ st.markdown(f"""
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
+
+# 花びらアニメーション
+if total_exceeded:
+    petals_html = """
+    <canvas id="petals"></canvas>
+    <script>
+    const canvas = document.getElementById('petals');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const petals = [];
+    const colors = ['#FFC0CB','#FFB6C1','#FF69B4','#FF1493'];
+    for(let i=0;i<50;i++){
+        petals.push({
+            x: Math.random()*canvas.width,
+            y: Math.random()*canvas.height,
+            r: Math.random()*5+2,
+            d: Math.random()*1+0.5,
+            color: colors[Math.floor(Math.random()*colors.length)],
+            tilt: Math.random()*10-5
+        });
+    }
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(let i=0;i<petals.length;i++){
+            let p=petals[i];
+            ctx.beginPath();
+            ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+            ctx.fillStyle=p.color;
+            ctx.fill();
+            p.y += p.d;
+            p.x += Math.sin(p.tilt);
+            if(p.y>canvas.height){p.y=0; p.x=Math.random()*canvas.width;}
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
+    </script>
+    """
+    html(petals_html, height=500)
