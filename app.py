@@ -5,37 +5,38 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="宅建士試験分析", layout="wide")
 st.title("📊 宅建士試験 レーダーチャート＋得点表（iPad/Dark Mode対応）")
 
-# サイドバーにメモ
-st.sidebar.subheader("📝 メモ")
-memo = st.sidebar.text_area("ここにメモを入力できます", height=200)
+# --- サイドバー ---
+with st.sidebar:
+    # 年度入力
+    year = st.text_input("年度", "令和5年")
 
-# 年度入力
-year = st.text_input("年度", "令和5年")
+    # 科目設定
+    categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
+    max_scores = [14, 8, 3, 20, 5]
+    target_scores = [7, 6, 2, 18, 4]
 
-# 科目設定
-categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
-max_scores = [14, 8, 3, 20, 5]
-target_scores = [7, 6, 2, 18, 4]
+    # セッションステートで得点管理
+    if 'scores' not in st.session_state:
+        st.session_state.scores = [int(m*0.7) for m in max_scores]
 
-# セッションステートで得点管理
-if 'scores' not in st.session_state:
-    st.session_state.scores = [int(m*0.7) for m in max_scores]
+    st.subheader("科目ごとの得点入力（＋/−で調整）")
+    for i, cat in enumerate(categories):
+        cols = st.columns([1,2,1])
+        with cols[0]:
+            if st.button("−", key=f"minus_{i}", help=f"{cat}の得点を減らす"):
+                st.session_state.scores[i] = max(0, st.session_state.scores[i]-1)
+        with cols[1]:
+            st.markdown(
+                f"<div style='text-align:center; font-weight:bold; font-size:16px; color:black; background-color:white; padding:2px'>{st.session_state.scores[i]} / {max_scores[i]}</div>",
+                unsafe_allow_html=True
+            )
+        with cols[2]:
+            if st.button("＋", key=f"plus_{i}", help=f"{cat}の得点を増やす"):
+                st.session_state.scores[i] = min(max_scores[i], st.session_state.scores[i]+1)
 
-# 科目ごとの得点入力
-st.subheader("科目ごとの得点入力（＋/−で調整）")
-for i, cat in enumerate(categories):
-    cols = st.columns([1,2,1])
-    with cols[0]:
-        if st.button("−", key=f"minus_{i}", help=f"{cat}の得点を減らす"):
-            st.session_state.scores[i] = max(0, st.session_state.scores[i]-1)
-    with cols[1]:
-        st.markdown(
-            f"<div style='text-align:center; font-weight:bold; font-size:18px; color:black; background-color:white; padding:2px'>{st.session_state.scores[i]} / {max_scores[i]}</div>",
-            unsafe_allow_html=True
-        )
-    with cols[2]:
-        if st.button("＋", key=f"plus_{i}", help=f"{cat}の得点を増やす"):
-            st.session_state.scores[i] = min(max_scores[i], st.session_state.scores[i]+1)
+    # メモ
+    st.subheader("📝 メモ")
+    memo = st.text_area("ここにメモを入力できます", height=200)
 
 scores = st.session_state.scores
 passing_line = st.number_input("合格ライン点数", min_value=0, max_value=sum(max_scores), value=37, step=1)
@@ -45,20 +46,6 @@ st.subheader(f"📈 {year} レーダーチャート")
 theta = categories + [categories[0]]
 r_score = [s/m*100 for s,m in zip(scores, max_scores)] + [scores[0]/max_scores[0]*100]
 r_target = [t/m*100 for t,m in zip(target_scores, max_scores)] + [target_scores[0]/max_scores[0]*100]
-
-# 科目ラベル色・サイズ
-label_colors = []
-label_sizes = []
-for s, t in zip(scores, target_scores):
-    if s < t:
-        label_colors.append('red')
-        label_sizes.append(14)
-    elif s == t:
-        label_colors.append('blue')
-        label_sizes.append(12)
-    else:
-        label_colors.append('blue')
-        label_sizes.append(14)
 
 fig = go.Figure()
 
@@ -90,8 +77,7 @@ fig.update_layout(
         angularaxis=dict(
             tickmode='array',
             tickvals=list(range(len(categories))),
-            ticktext=categories,
-            tickfont=dict(color='black', size=14),
+            ticktext=[ "" for _ in categories],  # 元のラベル非表示
             rotation=90,
             direction='clockwise'
         ),
@@ -107,33 +93,20 @@ fig.update_layout(
     showlegend=True
 )
 
-# --- 科目名を円形半透明ボックスで表示 ---
-for i, cat in enumerate(categories):
+# --- 科目名＋自分の得点＋目標得点を円形半透明ボックスで表示 ---
+for i, (cat, s, t, m) in enumerate(zip(categories, scores, target_scores, max_scores)):
+    # 色を達成状況に応じて変更
+    if s < t:
+        label_color = "red"
+    else:
+        label_color = "blue"
+
     fig.add_annotation(
         x=i,
         y=110,
-        text=f"<span style='display:inline-block; border-radius:50%; background-color:rgba(255,255,255,0.8); padding:6px 8px'><b>{cat}</b></span>",
+        text=f"<span style='display:inline-block; border-radius:50%; background-color:rgba(255,255,255,0.85); padding:6px 10px'><b style='color:{label_color}'>{cat}: {s}/{m} (目標: {t})</b></span>",
         showarrow=False,
-        font=dict(color=label_colors[i], size=label_sizes[i])
-    )
-
-# --- 頂点に自分の得点と目標得点を白背景で表示 ---
-for i, (s, t, m) in enumerate(zip(scores, target_scores, max_scores)):
-    # 自分の得点
-    fig.add_annotation(
-        x=i,
-        y=r_score[i],
-        text=f"<span style='background-color:white; padding:2px'><b style='color:royalblue'>{s}/{m}</b></span>",
-        showarrow=False,
-        font=dict(size=12)
-    )
-    # 目標得点
-    fig.add_annotation(
-        x=i,
-        y=r_target[i],
-        text=f"<span style='background-color:white; padding:2px'><b style='color:green'>{t}/{m}</b></span>",
-        showarrow=False,
-        font=dict(size=12)
+        font=dict(size=14)
     )
 
 st.plotly_chart(fig, use_container_width=True)
@@ -163,7 +136,7 @@ table_data.append({
 })
 df = pd.DataFrame(table_data)
 
-# ハイライト：目標達成なら緑、未達なら赤
+# ハイライト
 def highlight_target(val, target):
     if isinstance(val, (int, float)):
         if val >= target:
