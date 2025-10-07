@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
@@ -94,7 +95,7 @@ df_styled = df_scores.style.apply(
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 # タイトル表示
-st.markdown("<h2>📊 宅建士試験 得点表</h2>", unsafe_allow_html=True)
+st.markdown(f"<h2>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
 st.dataframe(df_styled, height=300)
 
 # 合格表示
@@ -120,7 +121,7 @@ if total_exceeded:
     <div class="celebrate">🌸 合格！おめでとうございます！🌸</div>
     """, unsafe_allow_html=True)
 
-# レーダーチャート（科目名の横に得点表示）
+# レーダーチャート
 theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
@@ -167,7 +168,7 @@ fig.update_layout(
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
 
-st.markdown(f"<h2>📊 宅建士試験 レーダーチャート</h2>", unsafe_allow_html=True)
+st.markdown(f"<h2>📊 宅建士試験 レーダーチャート（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
 # 合計得点表示
@@ -177,3 +178,22 @@ st.markdown(f"""
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
+
+# 画面全体スクリーンショットボタン
+st.markdown("<h3>📸 画面全体をワンタップで保存</h3>", unsafe_allow_html=True)
+capture_html = """
+<button id="captureBtn" style="font-size:16px; padding:8px 12px;">画面を画像として保存</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+document.getElementById("captureBtn").onclick = function() {
+    html2canvas(document.body).then(function(canvas) {
+        let link = document.createElement('a');
+        link.download = 'screenshot.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+};
+</script>
+"""
+components.html(capture_html, height=60)
