@@ -5,6 +5,12 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="宅建士試験分析", layout="wide")
 st.title("📊 宅建士試験 レーダーチャート＋得点表")
 
+# --- サイドバーにメモ欄 ---
+st.sidebar.subheader("📝 メモ")
+memo = st.sidebar.text_area("ここにメモを入力できます", height=300)
+if memo:
+    st.sidebar.info("入力中のメモを保存できます")
+
 # 年度入力
 year = st.text_input("年度", "令和5年")
 
@@ -26,43 +32,55 @@ passing_line = st.number_input("合格ライン点数", min_value=0, max_value=s
 # --- レーダーチャート ---
 st.subheader(f"📈 {year} レーダーチャート")
 theta = categories + [categories[0]]
+
 r_score = [s/m*100 for s,m in zip(scores, max_scores)]
 r_score += [r_score[0]]
 r_target = [t/m*100 for t,m in zip(target_scores, max_scores)]
 r_target += [r_target[0]]
+r_over = [max(0, s-t)/m*100 for s,t,m in zip(scores, target_scores, max_scores)]
+r_over += [r_over[0]]
+r_under = [min(s, t)/m*100 for s,t,m in zip(scores, target_scores, max_scores)]
+r_under += [r_under[0]]
 
 fig = go.Figure()
 
-# 目標得点：普通の黄色
+# 目標得点 緑
 fig.add_trace(go.Scatterpolar(
     r=r_target,
     theta=theta,
     fill='toself',
     name='目標得点',
-    line=dict(color='yellow', width=2),
+    line=dict(color='green', width=2),
     opacity=0.5
 ))
 
-# 自分の得点
+# 目標未達分 青
+fig.add_trace(go.Scatterpolar(
+    r=r_under,
+    theta=theta,
+    fill='toself',
+    name='目標未達分',
+    line=dict(color='blue', width=0),
+    fillcolor='rgba(0,0,255,0.3)'
+))
+
+# 目標超過分 赤
+fig.add_trace(go.Scatterpolar(
+    r=r_over,
+    theta=theta,
+    fill='toself',
+    name='目標超過分',
+    line=dict(color='red', width=0),
+    fillcolor='rgba(255,0,0,0.3)'
+))
+
+# 自分の得点線
 fig.add_trace(go.Scatterpolar(
     r=r_score,
     theta=theta,
-    fill='toself',
     name='自分の得点',
-    line=dict(color='royalblue', width=3),
-    marker=dict(color='royalblue', size=10)
-))
-
-# 目標達成部分を緑で表示
-r_overlap = [min(s, t) for s, t in zip(r_score, r_target)]
-r_overlap += [r_overlap[0]]
-fig.add_trace(go.Scatterpolar(
-    r=r_overlap,
-    theta=theta,
-    fill='toself',
-    name='目標達成部分',
-    line=dict(color='green', width=0),
-    fillcolor='rgba(0,255,0,0.3)'
+    line=dict(color='royalblue', width=2),
+    marker=dict(color='royalblue', size=8)
 ))
 
 fig.update_layout(
@@ -103,25 +121,21 @@ table_data.append({
 
 df = pd.DataFrame(table_data)
 
-# ハイライト：目標未達は赤背景＋白文字、達成は緑背景
+# ハイライト：目標達成なら緑、未達なら赤
 def highlight_target(val, target):
     if isinstance(val, (int, float)):
         if val >= target:
-            return 'background-color: #32CD32; color: black; font-weight: bold'  # 緑
+            return 'background-color: #32CD32; color: black; font-weight: bold'
         else:
-            return 'background-color: #FF6347; color: white; font-weight: bold'  # 赤
+            return 'background-color: #FF6347; color: white; font-weight: bold'
     return ''
 
 def style_row(row):
     return [highlight_target(row['得点'], row['目標']) if col=='得点' else "" for col in row.index]
 
 df_styled = df.style.apply(style_row, axis=1)
-
-# 達成率列に色付きバー（数値なので%表記は保持）
 df_styled = df_styled.bar(subset=["目標達成率(%)"], color='#32CD32', vmin=0, vmax=100)
 df_styled = df_styled.bar(subset=["満点達成率(%)"], color='#1E90FF', vmin=0, vmax=100)
-
-# %表記のためformat
 df_styled.format({"目標達成率(%)": "{:.0f}%", "満点達成率(%)": "{:.0f}%"})
 
 st.dataframe(df_styled, use_container_width=True)
