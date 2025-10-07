@@ -9,7 +9,6 @@ passing_line = 37
 
 st.title("📊 宅建士試験 レーダーチャート (Plotly)")
 
-# スコア入力
 cols = st.columns(len(categories))
 scores = []
 for i, (col, cat, m) in enumerate(zip(cols, categories, max_scores), start=1):
@@ -47,35 +46,39 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=6)
 ))
 
-# 頂点ラベル（色を明るく）
+# 頂点ラベル
 texts = [f"{s}/{m}<br>{p:.0f}%" for s, m, p in zip(scores, max_scores, scores_pct)]
 texts = texts + [texts[0]]
 fig.add_trace(go.Scatterpolar(
     r=r_scores, theta=theta,
     mode="markers+text", text=texts,
     textposition="top center",
-    marker=dict(color="royalblue", size=6),
-    textfont=dict(color="white", size=14, family="Noto Sans JP"),
+    marker=dict(color="royalblue", size=8),
     showlegend=False
 ))
 
-# レイアウト調整
+# レイアウト調整（角度補正・文字位置改善）
 fig.update_layout(
     polar=dict(
         angularaxis=dict(rotation=90, direction="clockwise"),
         radialaxis=dict(range=[0, 100], tickvals=[20, 40, 60, 80, 100],
                         ticktext=["20%", "40%", "60%", "80%", "100%"])
     ),
-    font=dict(family="Noto Sans JP, sans-serif", size=14),
-    margin=dict(l=40, r=40, t=180, b=100),
+    font=dict(family="Noto Sans JP, sans-serif", size=12),
+    margin=dict(l=40, r=40, t=80, b=60),
     legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1)
 )
 
-# 上部に得点・得点率・合格ラインを表示（色を明るめに）
+# 中央注記（スコア表示）
 fig.add_annotation(
-    text=f"得点: {total_score}/{total_max} ({total_pct:.1f}%)  |  合格ライン: {passing_line}点 ({passing_line/total_max*100:.1f}%)",
-    x=0.5, y=1.2, xref="paper", yref="paper", showarrow=False,
-    font=dict(size=20, color="deepskyblue", family="Noto Sans JP"), align="center"
+    text=f"{total_score}/{total_max}<br>{total_pct:.1f}%",
+    x=0.5, y=0.45, xref="paper", yref="paper", showarrow=False,
+    font=dict(size=16, color="royalblue", family="Noto Sans JP")
+)
+fig.add_annotation(
+    text=f"合格ライン: {passing_line}点 ({passing_line/total_max*100:.1f}%)",
+    x=0.5, y=0.05, xref="paper", yref="paper", showarrow=False,
+    font=dict(size=13, color="red", family="Noto Sans JP")
 )
 
 st.plotly_chart(fig, use_container_width=True)
