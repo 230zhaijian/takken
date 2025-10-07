@@ -48,26 +48,31 @@ categories = ["権利関係", "法令上の制限", "税その他", "宅建業�
 max_scores = [14, 8, 3, 20, 5]
 targets = [7, 6, 2, 18, 4]
 
+# 初期得点
 for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state:
         st.session_state[key] = int(m * 0.7)
 
+# --- 科目ごとの得点入力 ---
 st.sidebar.header("科目ごとの得点入力（±で調整）")
-for i, (cat, m) in enumerate(zip(categories, max_scores)):
+for i, (cat, m, t) in enumerate(zip(categories, max_scores, targets)):
     cols = st.sidebar.columns([1,2,1])
+    key_minus = f"minus_{i}"
+    key_plus = f"plus_{i}"
+    key_val = f"score_{i}"
     with cols[0]:
-        if st.button("−", key=f"minus_{i}"):
-            st.session_state[f"score_{i}"] = max(0, st.session_state[f"score_{i}"] - 1)
+        if st.button("−", key=key_minus):
+            st.session_state[key_val] = max(0, st.session_state[key_val] - 1)
     with cols[1]:
-        val = st.session_state[f"score_{i}"]
+        val = st.session_state[key_val]
         st.markdown(
             f"<div style='text-align:center; font-weight:bold; font-size:16px; background-color:white; padding:6px; border-radius:6px'>{cat}: {val} / {m}</div>",
             unsafe_allow_html=True
         )
     with cols[2]:
-        if st.button("+", key=f"plus_{i}"):
-            st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
+        if st.button("+", key=key_plus):
+            st.session_state[key_val] = min(st.session_state[key_val] + 1, m)
 
 st.sidebar.markdown("---")
 st.sidebar.header("メモ")
@@ -90,11 +95,15 @@ df_scores = pd.DataFrame({
     "目標得点": targets,
     "満点": max_scores
 })
-st.dataframe(
-    df_scores.style.format({"自分の得点":"{:.0f}","目標得点":"{:.0f}","満点":"{:.0f}"})
-             .set_properties(**{"color":"royalblue"}, subset=["自分の得点"])
-             .set_properties(**{"color":"goldenrod"}, subset=["目標得点"])
-)
+
+def color_score(val, target):
+    return 'color: royalblue;' if val >= target else 'color: red;'
+
+df_styled = df_scores.style.format({
+    "自分の得点":"{:.0f}","目標得点":"{:.0f}","満点":"{:.0f}"
+}).apply(lambda x: [color_score(v, t) if col=="自分の得点" else "" for v,t,col in zip(x, targets, x.index)], axis=1)
+
+st.dataframe(df_styled)
 
 # --- レーダーチャート ---
 theta = categories + [categories[0]]
@@ -121,12 +130,13 @@ for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
     radius = 0.56
     x = 0.5 + radius * math.cos(angle_rad)
     y = 0.5 + radius * math.sin(angle_rad)
-    label_text = f"{cat}<br><span style='font-size:12px;color:#222;'>{s}/{m}</span>"
+    label_color = "royalblue" if s >= targets[i] else "red"
+    label_text = f"{cat}<br><span style='font-size:12px;color:{label_color};'>{s}/{m}</span>"
     fig.add_annotation(
         x=x, y=y, xref="paper", yref="paper", text=label_text,
         showarrow=False, align="center",
         bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=6,
-        font=dict(color="#005FFF", size=13, family="Noto Sans JP")
+        font=dict(color=label_color, size=13, family="Noto Sans JP")
     )
 
 fig.update_layout(
