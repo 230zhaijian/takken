@@ -14,6 +14,7 @@ div[data-testid="stMarkdownContainer"] > .css-1d391kg {
 """
 st.markdown(hide_copy_css, unsafe_allow_html=True)
 
+# --- 日本年号変換 ---
 def to_japanese_era(year):
     if year <= 1925:
         return str(year)
@@ -28,7 +29,7 @@ def to_japanese_era(year):
     else:
         return f"令和{year - 2018}年"
 
-# --- サイドバー ---
+# --- サイドバー設定 ---
 st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
     st.session_state.year = 2024
@@ -68,7 +69,7 @@ st.sidebar.markdown("---")
 st.sidebar.header("メモ")
 memo = st.sidebar.text_area("自由記入欄（学習メモ）", height=200, placeholder="気づいた点、復習ポイントなど")
 
-# --- 計算 ---
+# --- 得点計算 ---
 scores = [st.session_state[f"score_{i}"] for i in range(len(categories))]
 passing_score = st.session_state.passing_score
 total_score = sum(scores)
@@ -156,8 +157,29 @@ st.markdown("""
 
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
-# --- 合計・合格ラインを目立たせる ---
+# --- CSSではなまるギミック定義 ---
+st.markdown("""
+<style>
+@keyframes poprotate {
+    0% { transform: scale(1) rotate(0deg); color:#FFD700; }
+    25% { transform: scale(1.3) rotate(20deg); color:#FFB347; }
+    50% { transform: scale(1) rotate(0deg); color:#FFD700; }
+    75% { transform: scale(1.2) rotate(-20deg); color:#FFB347; }
+    100% { transform: scale(1) rotate(0deg); color:#FFD700; }
+}
+.pop-emoji {
+    display:inline-block;
+    animation: poprotate 1.5s infinite;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- 合計・合格ライン表示（はなまる付き） ---
+total_exceeded = total_score >= passing_score
 st.markdown(f"""
-<div style='font-size:20px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
+<div style='display:flex; align-items:center; gap:15px;'>
+    <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
+    {"<div class='pop-emoji' style='font-size:40px;'>🌸</div>" if total_exceeded else ""}
+</div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
