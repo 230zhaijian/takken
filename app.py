@@ -21,7 +21,7 @@ target_scores = [7, 6, 2, 18, 4]
 if 'scores' not in st.session_state:
     st.session_state.scores = [int(m*0.7) for m in max_scores]
 
-# 科目ごとの得点入力（コンパクト）
+# 科目ごとの得点入力
 st.subheader("科目ごとの得点入力（＋/−で調整）")
 for i, cat in enumerate(categories):
     cols = st.columns([1,2,1])
@@ -69,9 +69,7 @@ fig.add_trace(go.Scatterpolar(
     name='自分の得点',
     line=dict(color='royalblue', width=3),
     marker=dict(color='royalblue', size=10),
-    text=[f"{s}/{m}" for s,m in zip(scores, max_scores)],
-    textposition='top center',
-    mode='lines+markers+text'
+    mode='lines+markers'
 ))
 
 # 目標得点
@@ -82,9 +80,7 @@ fig.add_trace(go.Scatterpolar(
     line=dict(color='green', width=2),
     fill='toself',
     opacity=0.3,
-    text=[f"{t}/{m}" for t,m in zip(target_scores, max_scores)],
-    textposition='bottom center',
-    mode='lines+markers+text'
+    mode='lines+markers'
 ))
 
 # レイアウト
@@ -111,14 +107,33 @@ fig.update_layout(
     showlegend=True
 )
 
-# 科目ラベルを白半透明背景で表示（文字色は達成状況で強調）
+# --- 科目名を円形半透明ボックスで表示 ---
 for i, cat in enumerate(categories):
     fig.add_annotation(
         x=i,
         y=110,
-        text=f"<span style='background-color:rgba(255,255,255,0.8); padding:2px'><b>{cat}</b></span>",
+        text=f"<span style='display:inline-block; border-radius:50%; background-color:rgba(255,255,255,0.8); padding:6px 8px'><b>{cat}</b></span>",
         showarrow=False,
         font=dict(color=label_colors[i], size=label_sizes[i])
+    )
+
+# --- 頂点に自分の得点と目標得点を白背景で表示 ---
+for i, (s, t, m) in enumerate(zip(scores, target_scores, max_scores)):
+    # 自分の得点
+    fig.add_annotation(
+        x=i,
+        y=r_score[i],
+        text=f"<span style='background-color:white; padding:2px'><b style='color:royalblue'>{s}/{m}</b></span>",
+        showarrow=False,
+        font=dict(size=12)
+    )
+    # 目標得点
+    fig.add_annotation(
+        x=i,
+        y=r_target[i],
+        text=f"<span style='background-color:white; padding:2px'><b style='color:green'>{t}/{m}</b></span>",
+        showarrow=False,
+        font=dict(size=12)
     )
 
 st.plotly_chart(fig, use_container_width=True)
