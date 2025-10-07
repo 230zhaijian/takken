@@ -24,11 +24,12 @@ st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
     st.session_state.year = 2024
 
+# 年度ボタン縦並び
+if st.sidebar.button("＋", key="year_plus"):
+    st.session_state.year += 1
+st.sidebar.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
 if st.sidebar.button("−", key="year_minus"):
     st.session_state.year -= 1
-st.sidebar.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
-if st.sidebar.button("+", key="year_plus"):
-    st.session_state.year += 1
 
 st.sidebar.markdown("---")
 st.sidebar.header("合格ライン設定")
@@ -76,7 +77,7 @@ total_pct = total_score / total_max * 100 if total_max else 0.0
 scores_pct = [(s / m * 100) if m else 0 for s, m in zip(scores, max_scores)]
 targets_pct = [(t / m * 100) if m else 0 for t, m in zip(targets, max_scores)]
 
-# --- 得点表（達成なら薄青、未達なら薄赤） ---
+# --- 得点表（薄青／薄赤塗り分け） ---
 st.subheader("得点表")
 df_scores = pd.DataFrame({
     "科目": categories,
@@ -114,14 +115,15 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=10), hoverinfo="skip"
 ))
 
-# --- ラベル（絶対座標固定＋フォント大きめ＋色分け） ---
+# --- ラベル表示保証（線の内側に寄せる） ---
 n = len(categories)
 for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
     angle_deg = 90 - (i*360/n)
     angle_rad = math.radians(angle_deg)
-    radius = 0.6
+    radius = 0.5  # 内側に寄せて必ず表示
     x = 0.5 + radius * math.cos(angle_rad)
     y = 0.5 + radius * math.sin(angle_rad)
+    # 自分の得点ラベル
     label_color = "royalblue" if s >= targets[i] else "red"
     label_text = f"{cat}<br><span style='font-size:14px;color:{label_color};'>{s}/{m}</span>"
     fig.add_annotation(
