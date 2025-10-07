@@ -37,7 +37,7 @@ for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
-# 科目入力（スピナー式、中央揃え）
+# 科目入力（スピナー式）
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
     val = st.sidebar.number_input(
@@ -163,16 +163,66 @@ st.markdown(f"""
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
 
-# 花びらアニメーション（軽量版）
+# 花びらアニメーション（全画面）
 if total_exceeded:
     petals_html = """
-    <canvas id="petals" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9998;"></canvas>
+    <canvas id="petals" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;"></canvas>
     <script>
-    const canvas=document.getElementById('petals'); canvas.width=window.innerWidth; canvas.height=window.innerHeight; const ctx=canvas.getContext('2d'); const petals=[]; const colors=['#FFC0CB','#FFB6C1','#FF69B4','#FF1493','#FFD700']; const shapes=['circle','heart','star'];
-    function drawShape(p){ctx.fillStyle=p.color; ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rotation); switch(p.shape){case 'circle': ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill(); break; case 'heart': ctx.beginPath(); const x=0; const y=0; ctx.moveTo(x,y); ctx.bezierCurveTo(x,y-p.r,x-p.r,y-p.r,x-p.r,y); ctx.bezierCurveTo(x-p.r,y+p.r,x,y+p.r,x,y+p.r/2); ctx.bezierCurveTo(x,y+p.r,x+p.r,y+p.r,x+p.r,y); ctx.bezierCurveTo(x+p.r,y-p.r,x,y-p.r,x,y); ctx.fill(); break; case 'star': ctx.beginPath(); for(let i=0;i<5;i++){ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*p.r,-Math.sin((18+i*72)/180*Math.PI)*p.r); ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*(p.r/2),-Math.sin((54+i*72)/180*Math.PI)*(p.r/2));} ctx.closePath(); ctx.fill(); break;} ctx.restore();}
-    for(let i=0;i<50;i++){petals.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*8+3,d:Math.random()*1+0.5,color:colors[Math.floor(Math.random()*colors.length)],tilt:Math.random()*0.5-0.25,rotation:Math.random()*2*Math.PI,rotationSpeed:Math.random()*0.02-0.01,shape:shapes[Math.floor(Math.random()*shapes.length)]});}
-    function draw(){ctx.clearRect(0,0,canvas.width,canvas.height); for(let i=0;i<petals.length;i++){let p=petals[i]; drawShape(p); p.y+=p.d; p.x+=Math.sin(p.tilt); p.rotation+=p.rotationSpeed; if(p.y>canvas.height){p.y=0; p.x=Math.random()*canvas.width;} if(p.x>canvas.width){p.x=0;} if(p.x<0){p.x=canvas.width;}} requestAnimationFrame(draw);}
-    draw(); window.addEventListener('resize',()=>{canvas.width=window.innerWidth; canvas.height=window.innerHeight;});
+    const canvas=document.getElementById('petals');
+    function resizeCanvas(){canvas.width=window.innerWidth; canvas.height=window.innerHeight;}
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    const ctx=canvas.getContext('2d');
+    const petals=[];
+    const colors=['#FFC0CB','#FFB6C1','#FF69B4','#FF1493','#FFD700'];
+    const shapes=['circle','heart','star'];
+    function drawShape(p){
+        ctx.fillStyle=p.color;
+        ctx.save();
+        ctx.translate(p.x,p.y);
+        ctx.rotate(p.rotation);
+        switch(p.shape){
+            case 'circle': ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill(); break;
+            case 'heart':
+                ctx.beginPath();
+                const x=0,y=0;
+                ctx.moveTo(x,y);
+                ctx.bezierCurveTo(x,y-p.r,x-p.r,y-p.r,x-p.r,y);
+                ctx.bezierCurveTo(x-p.r,y+p.r,x,y+p.r,x,y+p.r/2);
+                ctx.bezierCurveTo(x,y+p.r,x+p.r,y+p.r,x+p.r,y);
+                ctx.bezierCurveTo(x+p.r,y-p.r,x,y-p.r,x,y);
+                ctx.fill();
+                break;
+            case 'star':
+                ctx.beginPath();
+                for(let i=0;i<5;i++){
+                    ctx.lineTo(Math.cos((18+i*72)/180*Math.PI)*p.r,-Math.sin((18+i*72)/180*Math.PI)*p.r);
+                    ctx.lineTo(Math.cos((54+i*72)/180*Math.PI)*(p.r/2),-Math.sin((54+i*72)/180*Math.PI)*(p.r/2));
+                }
+                ctx.closePath();
+                ctx.fill();
+                break;
+        }
+        ctx.restore();
+    }
+    for(let i=0;i<50;i++){
+        petals.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,r:Math.random()*8+3,d:Math.random()*1+0.5,color:colors[Math.floor(Math.random()*colors.length)],tilt:Math.random()*0.5-0.25,rotation:Math.random()*2*Math.PI,rotationSpeed:Math.random()*0.02-0.01,shape:shapes[Math.floor(Math.random()*shapes.length)]});
+    }
+    function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(let i=0;i<petals.length;i++){
+            let p=petals[i];
+            drawShape(p);
+            p.y+=p.d;
+            p.x+=Math.sin(p.tilt);
+            p.rotation+=p.rotationSpeed;
+            if(p.y>canvas.height){p.y=0;p.x=Math.random()*canvas.width;}
+            if(p.x>canvas.width){p.x=0;}
+            if(p.x<0){p.x=canvas.width;}
+        }
+        requestAnimationFrame(draw);
+    }
+    draw();
     </script>
     """
-    html(petals_html, height=500)
+    html(petals_html, height=0)
