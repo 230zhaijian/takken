@@ -85,7 +85,7 @@ df_styled = df_scores.style.format({
     "目標得点":"{:.0f}",
     "満点":"{:.0f}"
 }).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index], axis=1)\
-  .set_properties(**{'text-align':'center'})
+  .set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 st.dataframe(df_styled, height=250)
 
@@ -126,12 +126,8 @@ fig.update_layout(
     ),
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=13),
-    showlegend=True,
-    legend=dict(
-        orientation="v", yanchor="top", y=1, xanchor="right", x=1.05,
-        title="凡例", font=dict(size=12)
-    ),
-    margin=dict(l=40,r=80,t=80,b=40)
+    showlegend=False,
+    margin=dict(l=40,r=40,t=80,b=40)
 )
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
@@ -139,5 +135,12 @@ fig.update_traces(hoverinfo="skip")
 st.title("📊 宅建士試験 レーダーチャート")
 st.subheader(f"{to_japanese_era(st.session_state.year)} の結果")
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
+
+# --- 凡例をチャート外に表示 ---
+st.markdown("""
+**凡例：**  
+- 🔹 青線：自分の得点  
+- 🔴 薄赤線：目標得点
+""")
 
 st.markdown(f"**合計：{total_score}/{total_max}点（{total_pct:.1f}%）**　合格ライン：{passing_score}点")
