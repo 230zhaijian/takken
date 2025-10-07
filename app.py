@@ -1,7 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-import math
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
@@ -107,7 +106,7 @@ df_styled = df_scores.style.apply(
 # タイトル表示
 # -------------------------------
 st.markdown(f"<h2>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
-st.dataframe(df_styled, height=300)
+st.dataframe(df_styled, height=200)
 
 # -------------------------------
 # 合格表示
@@ -121,7 +120,7 @@ if total_exceeded:
         100% {transform: translateY(0px) scale(1);}
     }
     .celebrate {
-        font-size:42px;
+        font-size:36px;
         font-weight:bold;
         text-align:center;
         background: linear-gradient(90deg, #ff69b4, #ff1493, #ff69b4);
@@ -137,11 +136,10 @@ if total_exceeded:
 # -------------------------------
 # レーダーチャート作成
 # -------------------------------
+import math
 theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
-score_texts = [f"{s}/{m}" for s,m in zip(scores, max_scores)] + [f"{scores[0]}/{max_scores[0]}"]
-target_texts = [f"{t}/{m}" for t,m in zip(targets, max_scores)] + [f"{targets[0]}/{max_scores[0]}"]
 
 fig = go.Figure()
 fig.add_trace(go.Scatterpolar(
@@ -150,9 +148,6 @@ fig.add_trace(go.Scatterpolar(
     fill="toself", fillcolor="rgba(255,0,0,0.15)",
     line=dict(color="lightcoral", width=3),
     marker=dict(size=8),
-    text=target_texts,
-    textposition="top center",
-    textfont=dict(size=12),
     hoverinfo="skip"
 ))
 fig.add_trace(go.Scatterpolar(
@@ -161,9 +156,6 @@ fig.add_trace(go.Scatterpolar(
     fill="toself", fillcolor="rgba(65,105,225,0.25)",
     line=dict(color="royalblue", width=3),
     marker=dict(size=10),
-    text=score_texts,
-    textposition="bottom center",
-    textfont=dict(size=12),
     hoverinfo="skip"
 ))
 fig.update_layout(
@@ -180,7 +172,7 @@ fig.update_layout(
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=13),
     showlegend=False,
-    margin=dict(l=40,r=40,t=100,b=40)
+    margin=dict(l=40,r=40,t=40,b=40)
 )
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
@@ -192,26 +184,8 @@ st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "disp
 # 合計得点表示
 # -------------------------------
 st.markdown(f"""
-<div style='display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap:wrap;'>
-    <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
+<div style='display:flex; align-items:center; gap:15px; flex-wrap:wrap; margin-top:5px;'>
+    <div style='font-size:20px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
-""", unsafe_allow_html=True)
-
-# -------------------------------
-# ワンタップで画面全体PNG保存ボタン（JS/html2canvas）
-# -------------------------------
-st.markdown("""
-<button id="captureBtn" style="font-size:16px; padding:8px 16px; margin:10px; border-radius:6px; background-color:#ff69b4; color:white; border:none; cursor:pointer;">画面全体を保存📸</button>
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-<script>
-document.getElementById('captureBtn').onclick = function() {
-    html2canvas(document.body).then(canvas => {
-        let link = document.createElement('a');
-        link.download = 'takken_fullpage.png';
-        link.href = canvas.toDataURL();
-        link.click();
-    });
-};
-</script>
 """, unsafe_allow_html=True)
