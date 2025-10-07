@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
+import math
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
@@ -13,7 +14,9 @@ def to_japanese_era(year):
     elif year == 2019: return "令和元年"
     else: return f"令和{year - 2018}年"
 
+# -------------------------------
 # サイドバー設定
+# -------------------------------
 st.sidebar.header("年度・設定")
 if "year" not in st.session_state: st.session_state.year = 2024
 st.sidebar.number_input("年度", min_value=1900, max_value=2100,
@@ -36,7 +39,9 @@ for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
-# 科目入力（スピナーUI）
+# -------------------------------
+# 科目入力（スピナーUI風）
+# -------------------------------
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
     val = st.sidebar.number_input(
@@ -50,7 +55,9 @@ st.sidebar.markdown("---")
 st.sidebar.header("メモ")
 memo = st.sidebar.text_area("自由記入欄（学習メモ）", height=200, placeholder="気づいた点、復習ポイントなど")
 
+# -------------------------------
 # 得点計算
+# -------------------------------
 scores = [st.session_state[f"score_{i}"] for i in range(len(categories))]
 passing_score = st.session_state.passing_score
 total_score = sum(scores)
@@ -60,17 +67,20 @@ scores_pct = [(s / m * 100) if m else 0 for s, m in zip(scores, max_scores)]
 targets_pct = [(t / m * 100) if m else 0 for t, m in zip(targets, max_scores)]
 total_exceeded = total_score >= passing_score
 
-# 背景色切替・文字色（合格時）
+# -------------------------------
+# 合格時背景色と文字色変更
+# -------------------------------
 if total_exceeded:
     st.markdown("""
     <style>
     .stApp {background-color: #ffe6f0 !important; color: black !important;}
-    .css-1v3fvcr, .css-1d391kg {color: black !important;}
     .sidebar .css-1d391kg {background-color: #ffe6f0 !important;}
     </style>
     """, unsafe_allow_html=True)
 
-# 得点表（最後に合計行を追加）
+# -------------------------------
+# 得点表作成
+# -------------------------------
 df_scores = pd.DataFrame({
     "科目": categories + ["合計"],
     "自分の得点": scores + [total_score],
@@ -93,11 +103,15 @@ df_styled = df_scores.style.apply(
     lambda row: [highlight_score(row[col], col, row) for col in df_scores.columns], axis=1
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
+# -------------------------------
 # タイトル表示
+# -------------------------------
 st.markdown(f"<h2>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
 st.dataframe(df_styled, height=300)
 
+# -------------------------------
 # 合格表示
+# -------------------------------
 if total_exceeded:
     st.markdown("""
     <style>
@@ -120,7 +134,9 @@ if total_exceeded:
     <div class="celebrate">🌸 合格！おめでとうございます！🌸</div>
     """, unsafe_allow_html=True)
 
-# レーダーチャート
+# -------------------------------
+# レーダーチャート作成
+# -------------------------------
 theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
@@ -172,10 +188,30 @@ fig.update_traces(hoverinfo="skip")
 st.markdown(f"<h2>📊 宅建士試験 レーダーチャート（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
+# -------------------------------
 # 合計得点表示
+# -------------------------------
 st.markdown(f"""
 <div style='display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap:wrap;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
+""", unsafe_allow_html=True)
+
+# -------------------------------
+# ワンタップで画面全体PNG保存ボタン（JS/html2canvas）
+# -------------------------------
+st.markdown("""
+<button id="captureBtn" style="font-size:16px; padding:8px 16px; margin:10px; border-radius:6px; background-color:#ff69b4; color:white; border:none; cursor:pointer;">画面全体を保存📸</button>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+document.getElementById('captureBtn').onclick = function() {
+    html2canvas(document.body).then(canvas => {
+        let link = document.createElement('a');
+        link.download = 'takken_fullpage.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+};
+</script>
 """, unsafe_allow_html=True)
