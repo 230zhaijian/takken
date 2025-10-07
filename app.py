@@ -22,7 +22,6 @@ def to_japanese_era(year):
 st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
     st.session_state.year = 2024
-
 st.sidebar.number_input("年度", min_value=1900, max_value=2100, value=st.session_state.year, step=1, key="year")
 
 st.sidebar.markdown("---")
@@ -89,32 +88,27 @@ theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
 
-# ラベルもscatterpolarのtextで表示
 fig = go.Figure()
+# 目標得点線（薄い赤）
 fig.add_trace(go.Scatterpolar(
     r=r_targets, theta=theta, name="目標得点",
-    fill="toself", fillcolor="rgba(255,255,0,0.25)",
-    line=dict(color="gold", width=3),
+    fill="toself", fillcolor="rgba(255,0,0,0.15)",
+    line=dict(color="lightcoral", width=3),
     marker=dict(size=8),
-    text=[f"{s}/{m}" for s,m in zip(targets, max_scores)]+[f"{targets[0]}/{max_scores[0]}"],
-    textposition="top center",
-    textfont=dict(color="goldenrod", size=14),
     hoverinfo="skip"
 ))
+# 自分の得点線（青）
 fig.add_trace(go.Scatterpolar(
     r=r_scores, theta=theta, name="自分の得点",
-    fill="toself", fillcolor="rgba(65,105,225,0.35)",
+    fill="toself", fillcolor="rgba(65,105,225,0.25)",
     line=dict(color="royalblue", width=3),
     marker=dict(size=10),
-    text=[f"{s}/{m}" for s,m in zip(scores, max_scores)]+[f"{scores[0]}/{max_scores[0]}"],
-    textposition="bottom center",
-    textfont=dict(color="royalblue", size=14),
     hoverinfo="skip"
 ))
 
 fig.update_layout(
     polar=dict(
-        angularaxis=dict(rotation=90, direction="clockwise", showticklabels=False),
+        angularaxis=dict(rotation=90, direction="clockwise", showticklabels=True),
         radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
                         ticktext=["20%","40%","60%","80%","100%"],
                         tickfont=dict(color="#333", size=12),
@@ -124,8 +118,11 @@ fig.update_layout(
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=13),
     showlegend=True,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-    margin=dict(l=40,r=40,t=80,b=40)
+    legend=dict(
+        orientation="v", yanchor="top", y=1, xanchor="right", x=1.05,
+        title="凡例", font=dict(size=12)
+    ),
+    margin=dict(l=40,r=80,t=80,b=40)
 )
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
@@ -133,4 +130,12 @@ fig.update_traces(hoverinfo="skip")
 st.title("📊 宅建士試験 レーダーチャート")
 st.subheader(f"{to_japanese_era(st.session_state.year)} の結果")
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
+
+# --- レーダーチャート線の色説明 ---
+st.markdown("""
+**凡例：**  
+- 🔹 青線：自分の得点  
+- 🔴 薄赤線：目標得点
+""")
+
 st.markdown(f"**合計：{total_score}/{total_max}点（{total_pct:.1f}%）**　合格ライン：{passing_score}点")
