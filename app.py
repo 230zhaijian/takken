@@ -3,120 +3,101 @@ import pandas as pd
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="宅建士試験 年度別分析", layout="wide")
-
 st.title("📊 宅建士試験 年度別分析（表＆レーダーチャート）")
 
-# --- 設定 ---
-years = ["令和5年", "令和6年"]
 categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
 max_scores = [14, 8, 3, 20, 5]
-target_scores = [7, 6, 2, 18, 4]  # 科目ごとの目標得点
+target_scores = [7, 6, 2, 18, 4]
 
-# データ格納用
-all_data = []
+# --- セッションステートで年度データ管理 ---
+if "years_data" not in st.session_state:
+    st.session_state.years_data = []
 
-for year in years:
-    st.subheader(f"{year} データ入力")
-    passing_line = st.number_input(f"{year} 合格ライン点数", min_value=0, max_value=sum(max_scores), value=37, step=1, key=year)
-    
-    cols = st.columns(len(categories))
-    scores = []
-    for col, cat, m in zip(cols, categories, max_scores):
-        with col:
-            scores.append(int(st.number_input(f"{cat}", min_value=0, max_value=m, value=int(m*0.7), step=1, key=f"{year}_{cat}")))
-
-    total_score = sum(scores)
-    total_pct = total_score / sum(max_scores) * 100
-    scores_pct = [s/m*100 for s,m in zip(scores,max_scores)]
-
-    all_data.append({
-        "年度": year,
-        "得点": scores,
-        "得点率": scores_pct,
-        "合計点": total_score,
-        "合計点率": total_pct,
-        "合格ライン": passing_line
+# 年度の追加
+st.subheader("年度管理")
+new_year = st.text_input("追加する年度名", "")
+if st.button("年度追加") and new_year:
+    st.session_state.years_data.append({
+        "年度": new_year,
+        "合格ライン": 37,
+        "得点": [0]*len(categories)
     })
 
-# --- レイアウト左右分割 ---
-col1, col2 = st.columns([1,1])
+# 年度の削除
+if st.session_state.years_data:
+    delete_year = st.selectbox("削除する年度", [y["年度"] for y in st.session_state.years_data])
+    if st.button("年度削除"):
+        st.session_state.years_data = [y for y in st.session_state.years_data if y["年度"] != delete_year]
 
-# --- 左側：表 ---
-with col1:
-    st.subheader("📋 年度別得点表")
-    table_rows = []
-    highlight_styles = []
-    
-    for data in all_data:
-        row = {"年度": data["年度"]}
-        style = {}
-        for cat, s, t in zip(categories, data["得点"], target_scores):
-            text = f"{s}/{max_scores[categories.index(cat)]}"
-            row[cat] = text
-            # 目標未達ならハイライト
-            if s < t:
-                style[cat] = 'background-color: #FFA07A'  # 明るい赤
-        # 合計点
-        row["合計点"] = f"{data['合計点']}/{sum(max_scores)}"
-        if data["合計点"] < data["合格ライン"]:
-            style["合計点"] = 'background-color: #FF6347'
-        row["合格ライン"] = f"{data['合格ライン']}/{sum(max_scores)}"
-        table_rows.append(row)
-        highlight_styles.append(style)
-    
-    df = pd.DataFrame(table_rows)
-    
-    # ハイライト適用
-    def highlight_cells(val, col_name, row_idx):
-        style = highlight_styles[row_idx].get(col_name, '')
-        return style
-    
-    def style_df(df):
-        styled = df.style
-        for i in range(len(df)):
-            for c in df.columns:
-                styled = styled.apply(lambda val, col=c, row_idx=i: highlight_cells(val, col, row_idx), axis=None)
-        return styled
-    
-    st.dataframe(style_df(df), use_container_width=True)
+# --- 年度ごとのデータ入力 ---
+for idx, year_data in enumerate(st.session_state.years_data):
+    st.markdown(f"### {year_data['年度']} データ入力")
+    year_data["合格ライン"] = st.number_input(
+        f"{year_data['年度']} 合格ライン", min_value=0, max_value=sum(max_scores),
+        value=year_data.get("合格ライン",37), step=1, key=f"pass_{idx}"
+    )
+    cols = st.columns(len(categories))
+    for i, cat in enumerate(categories):
+        year_data["得点"][i] = st.number_input(
+            f"{cat}", min_value=0, max_value=max_scores[i],
+            value=year_data["得点"][i], step=1, key=f"{year_data['年度']}_{cat}"
+        )
 
-# --- 右側：レーダーチャート ---
-with col2:
-    st.subheader("📈 年度別レーダーチャート")
-    theta = categories + [categories[0]]
-    fig = go.Figure()
-    for data in all_data:
-        r = data["得点率"] + [data["得点率"][0]]
-        # マーカー色（未達赤、達成青）
-        colors = ['red' if s<t else 'royalblue' for s,t in zip(data["得点"], target_scores)]
-        r_colors = colors + [colors[0]]
-        
-        fig.add_trace(go.Scatterpolar(
-            r=r,
-            theta=theta,
-            fill="toself",
-            name=data["年度"],
-            line=dict(color='royalblue', width=2),
-            marker=dict(color=r_colors, size=10),
-            text=[f"{s}/{m}" for s,m in zip(data["得点"], max_scores)],
-            textposition='top center'
-        ))
-        
-        # 総合点未達なら線を赤点線
-        if data["合計点"] < data["合格ライン"]:
+# --- 表作成 ---
+if st.session_state.years_data:
+    col1, col2 = st.columns([1,1])
+
+    with col1:
+        st.subheader("📋 年度別得点表")
+        rows = []
+        for y in st.session_state.years_data:
+            total = sum(y["得点"])
+            total_pct = total / sum(max_scores) * 100
+            row = {"年度": y["年度"]}
+            for i, s in enumerate(y["得点"]):
+                row[categories[i]] = s
+            row["合計点"] = total
+            row["合格ライン"] = y["合格ライン"]
+            rows.append(row)
+        df = pd.DataFrame(rows)
+
+        # ハイライト関数
+        def highlight_cells(val, col_name):
+            if col_name in categories:
+                idx = categories.index(col_name)
+                if val < target_scores[idx]:
+                    return 'background-color: #FFA07A'  # 赤系
+            elif col_name == "合計点":
+                row_idx = df[df[col_name]==val].index[0]
+                if val < df.loc[row_idx, "合格ライン"]:
+                    return 'background-color: #FF6347'
+            return ''
+
+        st.dataframe(df.style.applymap(lambda val: highlight_cells(val, df.columns[df.columns.get_loc(val.name)] if hasattr(val,'name') else val)), use_container_width=True)
+
+    # --- レーダーチャート ---
+    with col2:
+        st.subheader("📈 年度別レーダーチャート")
+        fig = go.Figure()
+        theta = categories + [categories[0]]
+        for y in st.session_state.years_data:
+            r = [s/max_scores[i]*100 for i,s in enumerate(y["得点"])]
+            r += [r[0]]  # 閉じる
+            # マーカー色
+            colors = ['red' if s<t else 'royalblue' for s,t in zip(y["得点"], target_scores)]
+            colors += [colors[0]]
             fig.add_trace(go.Scatterpolar(
                 r=r,
                 theta=theta,
-                fill="toself",
-                name=f"{data['年度']} 未達",
-                line=dict(color='red', width=2, dash='dash'),
-                opacity=0.3
+                fill='toself',
+                name=y["年度"],
+                line=dict(color='royalblue', width=2),
+                marker=dict(color=colors, size=10)
             ))
-    
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100], ticktext=["20%","40%","60%","80%","100%"])
-        ),
-        showlegend=True
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100])
+            ),
+            showlegend=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
