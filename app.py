@@ -175,4 +175,5 @@ st.markdown(f"""
 <div style='display:flex; align-items:center; gap:15px; margin-top:10px;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
-<div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点
+<div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
+""", unsafe_allow_html=True)
