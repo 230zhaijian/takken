@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="宅建士試験分析", layout="wide")
-st.title("📊 宅建士試験 レーダーチャート＋得点表（iPad最適化版）")
+st.title("📊 宅建士試験 レーダーチャート＋得点表（iPad/Dark Mode対応）")
 
-# --- サイドバーにメモ ---
+# サイドバーにメモ
 st.sidebar.subheader("📝 メモ")
 memo = st.sidebar.text_area("ここにメモを入力できます", height=200)
 
@@ -21,7 +21,7 @@ target_scores = [7, 6, 2, 18, 4]
 if 'scores' not in st.session_state:
     st.session_state.scores = [int(m*0.7) for m in max_scores]
 
-# --- 科目ごとの得点入力（iPad向け操作しやすく） ---
+# 科目ごとの得点入力（コンパクト）
 st.subheader("科目ごとの得点入力（＋/−で調整）")
 for i, cat in enumerate(categories):
     cols = st.columns([1,2,1])
@@ -30,7 +30,7 @@ for i, cat in enumerate(categories):
             st.session_state.scores[i] = max(0, st.session_state.scores[i]-1)
     with cols[1]:
         st.markdown(
-            f"<div style='text-align:center; font-weight:bold; font-size:18px'>{st.session_state.scores[i]} / {max_scores[i]}</div>",
+            f"<div style='text-align:center; font-weight:bold; font-size:18px; color:black; background-color:white; padding:2px'>{st.session_state.scores[i]} / {max_scores[i]}</div>",
             unsafe_allow_html=True
         )
     with cols[2]:
@@ -52,7 +52,7 @@ label_sizes = []
 for s, t in zip(scores, target_scores):
     if s < t:
         label_colors.append('red')
-        label_sizes.append(12)
+        label_sizes.append(14)
     elif s == t:
         label_colors.append('blue')
         label_sizes.append(12)
@@ -60,7 +60,6 @@ for s, t in zip(scores, target_scores):
         label_colors.append('blue')
         label_sizes.append(14)
 
-# --- レーダーチャート作成 ---
 fig = go.Figure()
 
 # 自分の得点
@@ -69,7 +68,7 @@ fig.add_trace(go.Scatterpolar(
     theta=theta,
     name='自分の得点',
     line=dict(color='royalblue', width=3),
-    marker=dict(color='royalblue', size=8),
+    marker=dict(color='royalblue', size=10),
     text=[f"{s}/{m}" for s,m in zip(scores, max_scores)],
     textposition='top center',
     mode='lines+markers+text'
@@ -96,7 +95,7 @@ fig.update_layout(
             tickmode='array',
             tickvals=list(range(len(categories))),
             ticktext=categories,
-            tickfont=dict(color='black', size=12),
+            tickfont=dict(color='black', size=14),
             rotation=90,
             direction='clockwise'
         ),
@@ -107,17 +106,17 @@ fig.update_layout(
             tickfont=dict(color='black')
         )
     ),
-    width=600,
-    height=350,
+    width=750,
+    height=550,
     showlegend=True
 )
 
-# 科目ラベルを白背景で外側に表示
+# 科目ラベルを白半透明背景で表示（文字色は達成状況で強調）
 for i, cat in enumerate(categories):
     fig.add_annotation(
         x=i,
         y=110,
-        text=f"<span style='background-color:white; padding:2px'><b>{cat}</b></span>",
+        text=f"<span style='background-color:rgba(255,255,255,0.8); padding:2px'><b>{cat}</b></span>",
         showarrow=False,
         font=dict(color=label_colors[i], size=label_sizes[i])
     )
