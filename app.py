@@ -24,15 +24,11 @@ st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
     st.session_state.year = 2024
 
-col_minus, col_display, col_plus = st.sidebar.columns([1,3,1])
-with col_minus:
-    if st.button("−", key="year_minus"):
-        st.session_state.year -= 1
-with col_display:
-    st.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
-with col_plus:
-    if st.button("+", key="year_plus"):
-        st.session_state.year += 1
+if st.sidebar.button("−", key="year_minus"):
+    st.session_state.year -= 1
+st.sidebar.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
+if st.sidebar.button("+", key="year_plus"):
+    st.session_state.year += 1
 
 st.sidebar.markdown("---")
 st.sidebar.header("合格ライン設定")
@@ -48,31 +44,19 @@ categories = ["権利関係", "法令上の制限", "税その他", "宅建業�
 max_scores = [14, 8, 3, 20, 5]
 targets = [7, 6, 2, 18, 4]
 
-# 初期得点
 for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state:
         st.session_state[key] = int(m * 0.7)
 
-# --- 科目ごとの得点入力 ---
+# --- 科目入力（縦並び） ---
 st.sidebar.header("科目ごとの得点入力（±で調整）")
-for i, (cat, m, t) in enumerate(zip(categories, max_scores, targets)):
-    cols = st.sidebar.columns([1,2,1])
-    key_minus = f"minus_{i}"
-    key_plus = f"plus_{i}"
-    key_val = f"score_{i}"
-    with cols[0]:
-        if st.button("−", key=key_minus):
-            st.session_state[key_val] = max(0, st.session_state[key_val] - 1)
-    with cols[1]:
-        val = st.session_state[key_val]
-        st.markdown(
-            f"<div style='text-align:center; font-weight:bold; font-size:16px; background-color:white; padding:6px; border-radius:6px'>{cat}: {val} / {m}</div>",
-            unsafe_allow_html=True
-        )
-    with cols[2]:
-        if st.button("+", key=key_plus):
-            st.session_state[key_val] = min(st.session_state[key_val] + 1, m)
+for i, (cat, m) in enumerate(zip(categories, max_scores)):
+    st.sidebar.markdown(f"**{cat} ({st.session_state[f'score_{i}']}/{m})**")
+    if st.sidebar.button(f"＋ {cat}", key=f"plus_{i}"):
+        st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
+    if st.sidebar.button(f"− {cat}", key=f"minus_{i}"):
+        st.session_state[f"score_{i}"] = max(st.session_state[f"score_{i}"] - 1, 0)
 
 st.sidebar.markdown("---")
 st.sidebar.header("メモ")
@@ -97,13 +81,16 @@ df_scores = pd.DataFrame({
 })
 
 def color_score(val, target):
-    return 'color: royalblue;' if val >= target else 'color: red;'
+    return 'color: royalblue; font-weight:bold;' if val >= target else 'color: red; font-weight:bold;'
 
 df_styled = df_scores.style.format({
-    "自分の得点":"{:.0f}","目標得点":"{:.0f}","満点":"{:.0f}"
-}).apply(lambda x: [color_score(v, t) if col=="自分の得点" else "" for v,t,col in zip(x, targets, x.index)], axis=1)
+    "自分の得点":"{:.0f}",
+    "目標得点":"{:.0f}",
+    "満点":"{:.0f}"
+}).apply(lambda x: [color_score(v, t) if col=="自分の得点" else "" 
+                    for v,t,col in zip(x, targets, x.index)], axis=1)
 
-st.dataframe(df_styled)
+st.dataframe(df_styled, height=250)
 
 # --- レーダーチャート ---
 theta = categories + [categories[0]]
@@ -113,30 +100,30 @@ r_targets = targets_pct + [targets_pct[0]]
 fig = go.Figure()
 fig.add_trace(go.Scatterpolar(
     r=r_targets, theta=theta, name="目標得点", fill="toself",
-    fillcolor="rgba(255,255,0,0.25)", line=dict(color="gold", width=2),
-    marker=dict(size=6), hoverinfo="skip"
+    fillcolor="rgba(255,255,0,0.25)", line=dict(color="gold", width=3),
+    marker=dict(size=8), hoverinfo="skip"
 ))
 fig.add_trace(go.Scatterpolar(
     r=r_scores, theta=theta, name="自分の得点", fill="toself",
     fillcolor="rgba(65,105,225,0.35)", line=dict(color="royalblue", width=3),
-    marker=dict(size=8), hoverinfo="skip"
+    marker=dict(size=10), hoverinfo="skip"
 ))
 
-# --- レーダーラベル ---
+# --- ラベル（外側にずらして表示） ---
 n = len(categories)
 for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
     angle_deg = 90 - (i*360/n)
     angle_rad = math.radians(angle_deg)
-    radius = 0.56
+    radius = 0.65  # 外側にずらす
     x = 0.5 + radius * math.cos(angle_rad)
     y = 0.5 + radius * math.sin(angle_rad)
     label_color = "royalblue" if s >= targets[i] else "red"
-    label_text = f"{cat}<br><span style='font-size:12px;color:{label_color};'>{s}/{m}</span>"
+    label_text = f"{cat}<br><span style='font-size:14px;color:{label_color};'>{s}/{m}</span>"
     fig.add_annotation(
         x=x, y=y, xref="paper", yref="paper", text=label_text,
         showarrow=False, align="center",
-        bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=6,
-        font=dict(color=label_color, size=13, family="Noto Sans JP")
+        font=dict(color=label_color, size=14, family="Noto Sans JP"),
+        bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=4
     )
 
 fig.update_layout(
@@ -144,7 +131,7 @@ fig.update_layout(
         angularaxis=dict(rotation=90, direction="clockwise", showticklabels=False),
         radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
                         ticktext=["20%","40%","60%","80%","100%"],
-                        tickfont=dict(color="#333", size=11),
+                        tickfont=dict(color="#333", size=12),
                         gridcolor="lightgray"),
         bgcolor="white"
     ),
