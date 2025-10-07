@@ -70,38 +70,37 @@ if total_exceeded:
     </style>
     """, unsafe_allow_html=True)
 
-# 得点表
-st.subheader("得点表")
+# 得点表（最後に合計行を追加）
 df_scores = pd.DataFrame({
-    "科目": categories,
-    "自分の得点": scores,
-    "目標得点": targets,
-    "満点": max_scores,
-    "合計": [total_score]*len(categories)
+    "科目": categories + ["合計"],
+    "自分の得点": scores + [total_score],
+    "目標得点": targets + [passing_score],
+    "満点": max_scores + [total_max]
 })
 
-def highlight_score(val, col_name):
+def highlight_score(val, col_name, is_total=False):
     if col_name == "自分の得点":
-        idx = df_scores.columns.get_loc("自分の得点")
-        target = df_scores["目標得点"][idx]
-        if val >= target:
-            return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
+        if is_total:
+            if total_score >= passing_score:
+                return 'background-color: lightblue; color: black; font-weight: bold; text-align:center; font-size:16px;'
+            else:
+                return 'background-color: lightcoral; color: black; font-weight: bold; text-align:center; font-size:16px;'
         else:
-            return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:14px;'
-    elif col_name == "合計":
-        if total_score >= passing_score:
-            return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
-        else:
-            return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:16px;'
+            target = df_scores.loc[df_scores["科目"] != "合計", "目標得点"].iloc[df_scores.index.get_loc(val)]
+            if val >= target:
+                return 'background-color: lightblue; color: black; font-weight: bold; text-align:center; font-size:16px;'
+            else:
+                return 'background-color: lightcoral; color: black; font-weight: bold; text-align:center; font-size:14px;'
     else:
         return 'text-align:center;'
 
 df_styled = df_scores.style.apply(
-    lambda row: [highlight_score(row[col], col) for col in df_scores.columns],
-    axis=1
+    lambda row: [
+        highlight_score(row[col], col, is_total=(row["科目"]=="合計")) for col in df_scores.columns
+    ], axis=1
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
-st.dataframe(df_styled, height=250)
+st.dataframe(df_styled, height=300)
 
 # ゴージャス合格表示（軽量アニメーション・pulse＋float）
 if total_exceeded:
