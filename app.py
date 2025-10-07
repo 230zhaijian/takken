@@ -103,9 +103,9 @@ df_styled = df_scores.style.apply(
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 # -------------------------------
-# タイトル表示（小さく調整）
+# タイトル表示（さらに小さく調整）
 # -------------------------------
-st.markdown(f"<h3>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h3>", unsafe_allow_html=True)
+st.markdown(f"<h4>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h4>", unsafe_allow_html=True)
 st.dataframe(df_styled)
 
 # -------------------------------
@@ -120,7 +120,7 @@ if total_exceeded:
         100% {transform: translateY(0px) scale(1);}
     }
     .celebrate {
-        font-size:28px;
+        font-size:24px;
         font-weight:bold;
         text-align:center;
         background: linear-gradient(90deg, #ff69b4, #ff1493, #ff69b4);
@@ -134,7 +134,7 @@ if total_exceeded:
     """, unsafe_allow_html=True)
 
 # -------------------------------
-# レーダーチャート作成
+# レーダーチャート作成（幅を抑えて一画面優先）
 # -------------------------------
 import math
 theta = categories + [categories[0]]
@@ -172,20 +172,21 @@ fig.update_layout(
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=12),
     showlegend=False,
-    margin=dict(l=40,r=40,t=30,b=30)
+    margin=dict(l=30,r=30,t=20,b=20),
+    width=500, height=400  # 幅と高さを固定して一画面収まり優先
 )
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
 
-st.markdown(f"<h3>📊 宅建士試験 レーダーチャート（{to_japanese_era(st.session_state.year)}）</h3>", unsafe_allow_html=True)
-st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
+st.markdown(f"<h4>📊 宅建士試験 レーダーチャート（{to_japanese_era(st.session_state.year)}）</h4>", unsafe_allow_html=True)
+st.plotly_chart(fig, use_container_width=False, config={"staticPlot": True, "displayModeBar": False})
 
 # -------------------------------
 # 合計得点表示
 # -------------------------------
 st.markdown(f"""
 <div style='display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:5px;'>
-    <div style='font-size:18px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
+    <div style='font-size:16px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
-<div style='font-size:16px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
+<div style='font-size:14px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
