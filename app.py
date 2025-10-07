@@ -1,7 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from streamlit.components.v1 import html
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
@@ -37,7 +36,7 @@ for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
-# 科目入力（スピナー式）
+# 科目入力
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
     val = st.sidebar.number_input(
@@ -72,23 +71,32 @@ if total_exceeded:
 
 # 得点表
 st.subheader("得点表")
-df_scores = pd.DataFrame({
+
+def highlight_score(val, target):
+    if isinstance(val, str) and "合格" in val:
+        return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
+    elif val >= target:
+        return 'background-color: lightblue; color: black; font-weight: bold; text-align: center; font-size:16px;'
+    else:
+        return 'background-color: lightcoral; color: black; font-weight: bold; text-align: center; font-size:14px;'
+
+def format_score_cell(val, target):
+    if val >= target:
+        return f"{val}\n合格！🌸"
+    else:
+        return str(val)
+
+df_display = pd.DataFrame({
     "科目": categories,
-    "自分の得点": scores,
+    "自分の得点": [format_score_cell(s, t) for s, t in zip(scores, targets)],
     "目標得点": targets,
     "満点": max_scores
 })
 
-def highlight_cell(val, target):
-    color = "lightblue" if val >= target else "lightcoral"
-    return f'background-color: {color}; font-weight:bold; text-align:center;'
-
-df_styled = df_scores.style.format({
-    "自分の得点":"{:.0f}",
-    "目標得点":"{:.0f}",
-    "満点":"{:.0f}"
-}).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index], axis=1)\
-  .set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
+df_styled = df_display.style.apply(
+    lambda row: [highlight_score(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index],
+    axis=1
+).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 st.dataframe(df_styled, height=250)
 
@@ -142,74 +150,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
-# はなまるアニメーション
-st.markdown("""
-<style>
-@keyframes poprotate {0% {transform: scale(1) rotate(0deg); color:#FFD700;} 25% {transform: scale(1.3) rotate(20deg); color:#FFB347;} 50% {transform: scale(1) rotate(0deg); color:#FFD700;} 75% {transform: scale(1.2) rotate(-20deg); color:#FFB347;} 100% {transform: scale(1) rotate(0deg); color:#FFD700;}}
-.pop-emoji {display:inline-block; animation: poprotate 1.5s infinite;}
-</style>
-""", unsafe_allow_html=True)
+# 合計得点表示
 st.markdown(f"""
-<div style='display:flex; align-items:center; gap:15px;'>
+<div style='display:flex; align-items:center; gap:15px; margin-top:10px;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
-    {"<div class='pop-emoji' style='font-size:40px;'>🌸</div>" if total_exceeded else ""}
+    {"<div style='font-size:40px;'>🌸 合格！</div>" if total_exceeded else ""}
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
-
-# 花びらアニメーション（全画面・描画遅延で確実に表示）
-if total_exceeded:
-    petals_html = """
-    <div id="petal-container" style="position:fixed; top:0; left:0; width:100vw; height:100vh; pointer-events:none; z-index:9999;"></div>
-    <script>
-    setTimeout(() => {
-        const container = document.getElementById('petal-container');
-        const canvas = document.createElement('canvas');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        container.appendChild(canvas);
-        const ctx = canvas.getContext('2d');
-
-        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
-
-        const petals=[];
-        const colors=['#FFC0CB','#FFB6C1','#FF69B4','#FF1493','#FFD700'];
-        for(let i=0;i<50;i++){
-            petals.push({
-                x: Math.random()*canvas.width,
-                y: Math.random()*canvas.height,
-                r: Math.random()*8+3,
-                d: Math.random()*1+0.5,
-                color: colors[Math.floor(Math.random()*colors.length)],
-                tilt: Math.random()*0.5-0.25,
-                rotation: Math.random()*2*Math.PI,
-                rotationSpeed: Math.random()*0.02-0.01
-            });
-        }
-
-        function drawPetals(){
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            for(let p of petals){
-                ctx.save();
-                ctx.translate(p.x,p.y);
-                ctx.rotate(p.rotation);
-                ctx.fillStyle=p.color;
-                ctx.beginPath();
-                ctx.arc(0,0,p.r,0,Math.PI*2);
-                ctx.fill();
-                ctx.restore();
-
-                p.y += p.d;
-                p.x += Math.sin(p.tilt);
-                p.rotation += p.rotationSpeed;
-                if(p.y>canvas.height) p.y=0,p.x=Math.random()*canvas.width;
-                if(p.x>canvas.width) p.x=0;
-                if(p.x<0) p.x=canvas.width;
-            }
-            requestAnimationFrame(drawPetals);
-        }
-        drawPetals();
-    }, 100);
-    </script>
-    """
-    html(petals_html, height=0)
