@@ -22,7 +22,8 @@ def to_japanese_era(year):
 st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
     st.session_state.year = 2024
-st.sidebar.number_input("年度", min_value=1900, max_value=2100, value=st.session_state.year, step=1, key="year")
+st.sidebar.number_input("年度", min_value=1900, max_value=2100,
+                        value=st.session_state.year, step=1, key="year", format="%d")
 
 st.sidebar.markdown("---")
 st.sidebar.header("合格ライン設定")
@@ -30,7 +31,7 @@ if "passing_score" not in st.session_state:
     st.session_state.passing_score = 37
 st.session_state.passing_score = st.sidebar.number_input(
     "合格ライン（総合点）", min_value=0, max_value=100,
-    value=st.session_state.passing_score, step=1
+    value=st.session_state.passing_score, step=1, format="%d"
 )
 
 st.sidebar.markdown("---")
@@ -46,7 +47,11 @@ for i, m in enumerate(max_scores):
 # --- 科目入力（スピナー式） ---
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
-    val = st.sidebar.number_input(cat, min_value=0, max_value=m, value=st.session_state[f"score_{i}"], step=1, key=f"input_{i}")
+    val = st.sidebar.number_input(
+        cat, min_value=0, max_value=m,
+        value=st.session_state[f"score_{i}"],
+        step=1, format="%d", key=f"input_{i}"
+    )
     st.session_state[f"score_{i}"] = val
 
 st.sidebar.markdown("---")
@@ -79,7 +84,8 @@ df_styled = df_scores.style.format({
     "自分の得点":"{:.0f}",
     "目標得点":"{:.0f}",
     "満点":"{:.0f}"
-}).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index], axis=1)
+}).apply(lambda row: [highlight_cell(row['自分の得点'], row['目標得点']) if col=="自分の得点" else 'text-align:center;' for col in row.index], axis=1)\
+  .set_properties(**{'text-align':'center'})
 
 st.dataframe(df_styled, height=250)
 
@@ -120,7 +126,11 @@ fig.update_layout(
     ),
     paper_bgcolor="white", plot_bgcolor="white",
     font=dict(family="Noto Sans JP", size=13),
-    showlegend=False,
+    showlegend=True,
+    legend=dict(
+        orientation="v", yanchor="top", y=1, xanchor="right", x=1.05,
+        title="凡例", font=dict(size=12)
+    ),
     margin=dict(l=40,r=80,t=80,b=40)
 )
 fig.update_layout(dragmode=False)
@@ -129,12 +139,5 @@ fig.update_traces(hoverinfo="skip")
 st.title("📊 宅建士試験 レーダーチャート")
 st.subheader(f"{to_japanese_era(st.session_state.year)} の結果")
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
-
-# --- 線の色説明 ---
-st.markdown("""
-**凡例：**  
-- 🔹 青線：自分の得点  
-- 🔴 薄赤線：目標得点
-""")
 
 st.markdown(f"**合計：{total_score}/{total_max}点（{total_pct:.1f}%）**　合格ライン：{passing_score}点")
