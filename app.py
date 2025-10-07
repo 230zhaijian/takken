@@ -9,22 +9,33 @@ st.title("📊 宅建士試験 レーダーチャート＋得点表")
 st.sidebar.subheader("📝 メモ")
 memo = st.sidebar.text_area("ここにメモを入力できます", height=300)
 if memo:
-    st.sidebar.info("入力中のメモを保存できます")
+    st.sidebar.info("入力中のメモを確認できます")
 
 # 年度入力
 year = st.text_input("年度", "令和5年")
 
-# 科目と得点設定
+# 科目設定
 categories = ["権利関係", "法令上の制限", "税その他", "宅建業法", "免除科目"]
 max_scores = [14, 8, 3, 20, 5]
 target_scores = [7, 6, 2, 18, 4]
 
-st.subheader("科目ごとの得点を入力")
-cols = st.columns(len(categories))
-scores = []
-for i, (col, cat, m) in enumerate(zip(cols, categories, max_scores)):
-    with col:
-        scores.append(int(st.number_input(f"{cat}", min_value=0, max_value=m, value=int(m*0.7), step=1)))
+# --- セッションステートで得点管理 ---
+if 'scores' not in st.session_state:
+    st.session_state.scores = [int(m*0.7) for m in max_scores]
+
+st.subheader("科目ごとの得点を入力（＋/−で簡単調整）")
+for i, cat in enumerate(categories):
+    col1, col2, col3 = st.columns([1,1,2])
+    with col1:
+        if st.button(f"{cat} −"):
+            st.session_state.scores[i] = max(0, st.session_state.scores[i]-1)
+    with col2:
+        if st.button(f"{cat} ＋"):
+            st.session_state.scores[i] = min(max_scores[i], st.session_state.scores[i]+1)
+    with col3:
+        st.write(f"{cat}: {st.session_state.scores[i]} / {max_scores[i]} (目標: {target_scores[i]})")
+
+scores = st.session_state.scores
 
 # 合格ライン
 passing_line = st.number_input("合格ライン点数", min_value=0, max_value=sum(max_scores), value=37, step=1)
@@ -37,10 +48,12 @@ r_score = [s/m*100 for s,m in zip(scores, max_scores)]
 r_score += [r_score[0]]
 r_target = [t/m*100 for t,m in zip(target_scores, max_scores)]
 r_target += [r_target[0]]
-r_over = [max(0, s-t)/m*100 for s,t,m in zip(scores, target_scores, max_scores)]
-r_over += [r_over[0]]
-r_under = [min(s, t)/m*100 for s,t,m in zip(scores, target_scores, max_scores)]
-r_under += [r_under[0]]
+
+r_diff_under = [t-s if s<t else 0 for s,t in zip(scores, target_scores)]
+r_diff_under += [r_diff_under[0]]
+
+r_diff_over = [s-t if s>t else 0 for s,t in zip(scores, target_scores)]
+r_diff_over += [r_diff_over[0]]
 
 fig = go.Figure()
 
@@ -48,39 +61,37 @@ fig = go.Figure()
 fig.add_trace(go.Scatterpolar(
     r=r_target,
     theta=theta,
-    fill='toself',
     name='目標得点',
     line=dict(color='green', width=2),
+    fill='toself',
     opacity=0.5
 ))
 
-# 目標未達分 青
-fig.add_trace(go.Scatterpolar(
-    r=r_under,
-    theta=theta,
-    fill='toself',
-    name='目標未達分',
-    line=dict(color='blue', width=0),
-    fillcolor='rgba(0,0,255,0.3)'
-))
-
-# 目標超過分 赤
-fig.add_trace(go.Scatterpolar(
-    r=r_over,
-    theta=theta,
-    fill='toself',
-    name='目標超過分',
-    line=dict(color='red', width=0),
-    fillcolor='rgba(255,0,0,0.3)'
-))
-
-# 自分の得点線
+# 自分の得点 黄色
 fig.add_trace(go.Scatterpolar(
     r=r_score,
     theta=theta,
     name='自分の得点',
-    line=dict(color='royalblue', width=2),
-    marker=dict(color='royalblue', size=8)
+    line=dict(color='yellow', width=3),
+    marker=dict(color='yellow', size=10)
+))
+
+# 未達部分 赤点線
+fig.add_trace(go.Scatterpolar(
+    r=r_diff_under,
+    theta=theta,
+    mode='lines',
+    name='未達部分',
+    line=dict(color='red', width=2, dash='dot')
+))
+
+# 超過部分 青点線
+fig.add_trace(go.Scatterpolar(
+    r=r_diff_over,
+    theta=theta,
+    mode='lines',
+    name='超過部分',
+    line=dict(color='blue', width=2, dash='dot')
 ))
 
 fig.update_layout(
