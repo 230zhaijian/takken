@@ -1,6 +1,5 @@
 import streamlit as st
 import plotly.graph_objects as go
-import math
 import pandas as pd
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
@@ -24,12 +23,7 @@ st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
     st.session_state.year = 2024
 
-# 年度ボタン縦並び
-if st.sidebar.button("＋", key="year_plus"):
-    st.session_state.year += 1
-st.sidebar.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
-if st.sidebar.button("−", key="year_minus"):
-    st.session_state.year -= 1
+st.sidebar.number_input("年度", min_value=1900, max_value=2100, value=st.session_state.year, step=1, key="year")
 
 st.sidebar.markdown("---")
 st.sidebar.header("合格ライン設定")
@@ -50,19 +44,11 @@ for i, m in enumerate(max_scores):
     if key not in st.session_state:
         st.session_state[key] = int(m * 0.7)
 
-# --- 科目入力（縦スクロール前提で独立表示） ---
+# --- 科目入力（スピナー式） ---
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
-    st.sidebar.markdown(f"**{cat}**")
-    cols = st.sidebar.columns([1,1,2])
-    with cols[0]:
-        if st.button("−", key=f"minus_{i}"):
-            st.session_state[f"score_{i}"] = max(st.session_state[f"score_{i}"] - 1, 0)
-    with cols[1]:
-        st.markdown(f"<div style='text-align:center;font-weight:bold;font-size:16px'>{st.session_state[f'score_{i}']} / {m}</div>", unsafe_allow_html=True)
-    with cols[2]:
-        if st.button("＋", key=f"plus_{i}"):
-            st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
+    val = st.sidebar.number_input(cat, min_value=0, max_value=m, value=st.session_state[f"score_{i}"], step=1, key=f"input_{i}")
+    st.session_state[f"score_{i}"] = val
 
 st.sidebar.markdown("---")
 st.sidebar.header("メモ")
@@ -77,7 +63,7 @@ total_pct = total_score / total_max * 100 if total_max else 0.0
 scores_pct = [(s / m * 100) if m else 0 for s, m in zip(scores, max_scores)]
 targets_pct = [(t / m * 100) if m else 0 for t, m in zip(targets, max_scores)]
 
-# --- 得点表（薄青／薄赤塗り分け） ---
+# --- 得点表 ---
 st.subheader("得点表")
 df_scores = pd.DataFrame({
     "科目": categories,
@@ -103,35 +89,28 @@ theta = categories + [categories[0]]
 r_scores = scores_pct + [scores_pct[0]]
 r_targets = targets_pct + [targets_pct[0]]
 
+# ラベルもscatterpolarのtextで表示
 fig = go.Figure()
 fig.add_trace(go.Scatterpolar(
-    r=r_targets, theta=theta, name="目標得点", fill="toself",
-    fillcolor="rgba(255,255,0,0.25)", line=dict(color="gold", width=3),
-    marker=dict(size=8), hoverinfo="skip"
+    r=r_targets, theta=theta, name="目標得点",
+    fill="toself", fillcolor="rgba(255,255,0,0.25)",
+    line=dict(color="gold", width=3),
+    marker=dict(size=8),
+    text=[f"{s}/{m}" for s,m in zip(targets, max_scores)]+[f"{targets[0]}/{max_scores[0]}"],
+    textposition="top center",
+    textfont=dict(color="goldenrod", size=14),
+    hoverinfo="skip"
 ))
 fig.add_trace(go.Scatterpolar(
-    r=r_scores, theta=theta, name="自分の得点", fill="toself",
-    fillcolor="rgba(65,105,225,0.35)", line=dict(color="royalblue", width=3),
-    marker=dict(size=10), hoverinfo="skip"
+    r=r_scores, theta=theta, name="自分の得点",
+    fill="toself", fillcolor="rgba(65,105,225,0.35)",
+    line=dict(color="royalblue", width=3),
+    marker=dict(size=10),
+    text=[f"{s}/{m}" for s,m in zip(scores, max_scores)]+[f"{scores[0]}/{max_scores[0]}"],
+    textposition="bottom center",
+    textfont=dict(color="royalblue", size=14),
+    hoverinfo="skip"
 ))
-
-# --- ラベル表示保証（線の内側に寄せる） ---
-n = len(categories)
-for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
-    angle_deg = 90 - (i*360/n)
-    angle_rad = math.radians(angle_deg)
-    radius = 0.5  # 内側に寄せて必ず表示
-    x = 0.5 + radius * math.cos(angle_rad)
-    y = 0.5 + radius * math.sin(angle_rad)
-    # 自分の得点ラベル
-    label_color = "royalblue" if s >= targets[i] else "red"
-    label_text = f"{cat}<br><span style='font-size:14px;color:{label_color};'>{s}/{m}</span>"
-    fig.add_annotation(
-        x=x, y=y, xref="paper", yref="paper", text=label_text,
-        showarrow=False, align="center",
-        font=dict(color=label_color, size=14, family="Noto Sans JP"),
-        bgcolor="rgba(255,255,255,0.9)", bordercolor="rgba(0,0,0,0.06)", borderpad=4
-    )
 
 fig.update_layout(
     polar=dict(
