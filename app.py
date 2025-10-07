@@ -1,7 +1,6 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
@@ -37,7 +36,7 @@ for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
-# 科目入力（スピナーUI、タップ後スワイプ可能）
+# 科目入力（スピナーUI）
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
     val = st.sidebar.number_input(
@@ -137,6 +136,7 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=8),
     text=target_texts,
     textposition="top center",
+    textfont=dict(size=12),
     hoverinfo="skip"
 ))
 fig.add_trace(go.Scatterpolar(
@@ -147,6 +147,7 @@ fig.add_trace(go.Scatterpolar(
     marker=dict(size=10),
     text=score_texts,
     textposition="bottom center",
+    textfont=dict(size=12),
     hoverinfo="skip"
 ))
 fig.update_layout(
@@ -173,27 +174,8 @@ st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "disp
 
 # 合計得点表示
 st.markdown(f"""
-<div style='display:flex; align-items:center; gap:15px; margin-top:10px;'>
+<div style='display:flex; align-items:center; gap:15px; margin-top:10px; flex-wrap:wrap;'>
     <div style='font-size:22px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
 <div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
-
-# 画面全体スクリーンショットボタン
-st.markdown("<h3>📸 画面全体をワンタップで保存</h3>", unsafe_allow_html=True)
-capture_html = """
-<button id="captureBtn" style="font-size:16px; padding:8px 12px;">画面を画像として保存</button>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script>
-document.getElementById("captureBtn").onclick = function() {
-    html2canvas(document.body).then(function(canvas) {
-        let link = document.createElement('a');
-        link.download = 'screenshot.png';
-        link.href = canvas.toDataURL();
-        link.click();
-    });
-};
-</script>
-"""
-components.html(capture_html, height=60)
