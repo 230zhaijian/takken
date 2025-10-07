@@ -36,7 +36,7 @@ for i, m in enumerate(max_scores):
     key = f"score_{i}"
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
-# 科目入力
+# 科目入力（スピナーUI）
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
     val = st.sidebar.number_input(
@@ -78,31 +78,24 @@ df_scores = pd.DataFrame({
     "満点": max_scores + [total_max]
 })
 
-def highlight_score(val, col_name, is_total=False):
+def highlight_score(val, col_name, row=None):
+    is_total = (row is not None) and (row["科目"]=="合計")
     if col_name == "自分の得点":
-        if is_total:
-            if total_score >= passing_score:
-                return 'background-color: lightblue; color: black; font-weight: bold; text-align:center; font-size:16px;'
-            else:
-                return 'background-color: lightcoral; color: black; font-weight: bold; text-align:center; font-size:16px;'
+        target = row["目標得点"] if row is not None else val
+        if val >= target:
+            return 'background-color: lightblue; color: black; font-weight: bold; text-align:center; font-size:16px;'
         else:
-            target = df_scores.loc[df_scores["科目"] != "合計", "目標得点"].iloc[df_scores.index.get_loc(val)]
-            if val >= target:
-                return 'background-color: lightblue; color: black; font-weight: bold; text-align:center; font-size:16px;'
-            else:
-                return 'background-color: lightcoral; color: black; font-weight: bold; text-align:center; font-size:14px;'
+            return 'background-color: lightcoral; color: black; font-weight: bold; text-align:center; font-size:14px;'
     else:
         return 'text-align:center;'
 
 df_styled = df_scores.style.apply(
-    lambda row: [
-        highlight_score(row[col], col, is_total=(row["科目"]=="合計")) for col in df_scores.columns
-    ], axis=1
+    lambda row: [highlight_score(row[col], col, row) for col in df_scores.columns], axis=1
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 st.dataframe(df_styled, height=300)
 
-# ゴージャス合格表示（軽量アニメーション・pulse＋float）
+# ゴージャス合格表示
 if total_exceeded:
     st.markdown("""
     <style>
