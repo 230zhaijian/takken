@@ -5,37 +5,37 @@ import math
 st.set_page_config(page_title="宅建士試験レーダーチャート", layout="wide")
 
 def to_japanese_era(year):
-if year <= 1925:
-return str(year)
-if year <= 1988:
-return f"昭和{year - 1925}年"
-elif year == 1989:
-return "平成元年"
-elif 1989 < year <= 2018:
-return f"平成{year - 1988}年"
-elif year == 2019:
-return "令和元年"
-else:
-return f"令和{year - 2018}年"
+    if year <= 1925:
+        return str(year)
+    if year <= 1988:
+        return f"昭和{year - 1925}年"
+    elif year == 1989:
+        return "平成元年"
+    elif 1989 < year <= 2018:
+        return f"平成{year - 1988}年"
+    elif year == 2019:
+        return "令和元年"
+    else:
+        return f"令和{year - 2018}年"
 
 st.sidebar.header("年度・設定")
 if "year" not in st.session_state:
-st.session_state.year = 2024
+    st.session_state.year = 2024
 
 col_minus, col_display, col_plus = st.sidebar.columns([1, 3, 1])
 with col_minus:
-if st.button("−", key="year_minus"):
-st.session_state.year -= 1
+    if st.button("−", key="year_minus"):
+        st.session_state.year -= 1
 with col_display:
-st.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:center;font-size:18px;font-weight:bold'>{to_japanese_era(st.session_state.year)}</div>", unsafe_allow_html=True)
 with col_plus:
-if st.button("+", key="year_plus"):
-st.session_state.year += 1
+    if st.button("+", key="year_plus"):
+        st.session_state.year += 1
 
 st.sidebar.markdown("---")
 st.sidebar.header("合格ライン設定")
 if "passing_score" not in st.session_state:
-st.session_state.passing_score = 37
+    st.session_state.passing_score = 37
 st.session_state.passing_score = st.sidebar.number_input("合格ライン（総合点）", min_value=0, max_value=100, value=st.session_state.passing_score, step=1)
 
 st.sidebar.markdown("---")
@@ -44,22 +44,22 @@ max_scores = [14, 8, 3, 20, 5]
 targets = [7, 6, 2, 18, 4]
 
 for i, m in enumerate(max_scores):
-key = f"score_{i}"
-if key not in st.session_state:
-st.session_state[key] = int(m * 0.7)
+    key = f"score_{i}"
+    if key not in st.session_state:
+        st.session_state[key] = int(m * 0.7)
 
 st.sidebar.header("科目ごとの得点入力（±で調整）")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
-cols = st.sidebar.columns([1, 2, 1])
-with cols[0]:
-if st.button("−", key=f"minus_{i}"):
-st.session_state[f"score_{i}"] = max(0, st.session_state[f"score_{i}"] - 1)
-with cols[1]:
-val = st.session_state[f"score_{i}"]
-st.markdown(f"<div style='text-align:center; font-weight:bold; font-size:16px; background-color:white; padding:6px; border-radius:6px'>{cat}: {val} / {m}</div>", unsafe_allow_html=True)
-with cols[2]:
-if st.button("+", key=f"plus_{i}"):
-st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
+    cols = st.sidebar.columns([1, 2, 1])
+    with cols[0]:
+        if st.button("−", key=f"minus_{i}"):
+            st.session_state[f"score_{i}"] = max(0, st.session_state[f"score_{i}"] - 1)
+    with cols[1]:
+        val = st.session_state[f"score_{i}"]
+        st.markdown(f"<div style='text-align:center; font-weight:bold; font-size:16px; background-color:white; padding:6px; border-radius:6px'>{cat}: {val} / {m}</div>", unsafe_allow_html=True)
+    with cols[2]:
+        if st.button("+", key=f"plus_{i}"):
+            st.session_state[f"score_{i}"] = min(st.session_state[f"score_{i}"] + 1, m)
 
 st.sidebar.markdown("---")
 st.sidebar.header("メモ")
@@ -83,13 +83,13 @@ fig.add_trace(go.Scatterpolar(r=r_scores, theta=theta, name="自分の得点", f
 
 n = len(categories)
 for i, (cat, s, m) in enumerate(zip(categories, scores, max_scores)):
-angle_deg = 90 - (i * 360 / n)
-angle_rad = math.radians(angle_deg)
-radius = 0.56
-x = 0.5 + radius * math.cos(angle_rad)
-y = 0.5 + radius * math.sin(angle_rad)
-label_text = f"{cat}<br><span style='font-size:12px;color:#222;'>{s}/{m}</span>"
-fig.add_annotation(x=x, y=y, xref="paper", yref="paper", text=label_text, showarrow=False, align="center", bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=6, font=dict(color="#005FFF", size=13, family="Noto Sans JP"))
+    angle_deg = 90 - (i * 360 / n)
+    angle_rad = math.radians(angle_deg)
+    radius = 0.56
+    x = 0.5 + radius * math.cos(angle_rad)
+    y = 0.5 + radius * math.sin(angle_rad)
+    label_text = f"{cat}<br><span style='font-size:12px;color:#222;'>{s}/{m}</span>"
+    fig.add_annotation(x=x, y=y, xref="paper", yref="paper", text=label_text, showarrow=False, align="center", bgcolor="rgba(255,255,255,0.95)", bordercolor="rgba(0,0,0,0.06)", borderpad=6, font=dict(color="#005FFF", size=13, family="Noto Sans JP"))
 
 fig.update_layout(polar=dict(angularaxis=dict(rotation=90, direction="clockwise", showticklabels=False), radialaxis=dict(range=[0, 100], tickvals=[20, 40, 60, 80, 100], ticktext=["20%", "40%", "60%", "80%", "100%"], tickfont=dict(color="#333", size=11), gridcolor="lightgray"), bgcolor="white"), paper_bgcolor="white", plot_bgcolor="white", font=dict(family="Noto Sans JP", size=13), showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5), margin=dict(l=40, r=40, t=80, b=40))
 fig.update_layout(dragmode=False)
