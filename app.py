@@ -39,7 +39,7 @@ for i, m in enumerate(max_scores):
     if key not in st.session_state: st.session_state[key] = int(m * 0.7)
 
 # -------------------------------
-# 科目入力（スピナーUI風）
+# 科目入力
 # -------------------------------
 st.sidebar.header("科目ごとの得点入力")
 for i, (cat, m) in enumerate(zip(categories, max_scores)):
@@ -103,31 +103,31 @@ df_styled = df_scores.style.apply(
 ).set_properties(**{'text-align':'center', 'font-weight':'bold', 'font-size':'14px'})
 
 # -------------------------------
-# タイトル表示
+# タイトル表示（小さく調整）
 # -------------------------------
-st.markdown(f"<h2>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
-st.dataframe(df_styled, height=200)
+st.markdown(f"<h3>📊 宅建士試験 得点表（{to_japanese_era(st.session_state.year)}）</h3>", unsafe_allow_html=True)
+st.dataframe(df_styled)
 
 # -------------------------------
-# 合格表示
+# 合格表示（小さく調整）
 # -------------------------------
 if total_exceeded:
     st.markdown("""
     <style>
     @keyframes floatPulse {
         0% {transform: translateY(0px) scale(1);}
-        50% {transform: translateY(-10px) scale(1.1);}
+        50% {transform: translateY(-5px) scale(1.05);}
         100% {transform: translateY(0px) scale(1);}
     }
     .celebrate {
-        font-size:36px;
+        font-size:28px;
         font-weight:bold;
         text-align:center;
         background: linear-gradient(90deg, #ff69b4, #ff1493, #ff69b4);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         animation: floatPulse 1.5s ease-in-out infinite;
-        text-shadow: 2px 2px 10px pink;
+        text-shadow: 1px 1px 5px pink;
     }
     </style>
     <div class="celebrate">🌸 合格！おめでとうございます！🌸</div>
@@ -162,7 +162,7 @@ fig.update_layout(
     polar=dict(
         angularaxis=dict(rotation=90, direction="clockwise",
                          showticklabels=True,
-                         tickfont=dict(size=14, color="black", family="Noto Sans JP")),
+                         tickfont=dict(size=12, color="black", family="Noto Sans JP")),
         radialaxis=dict(range=[0,100], tickvals=[20,40,60,80,100],
                         ticktext=["20%","40%","60%","80%","100%"],
                         tickfont=dict(color="#333", size=12),
@@ -170,22 +170,22 @@ fig.update_layout(
         bgcolor="white"
     ),
     paper_bgcolor="white", plot_bgcolor="white",
-    font=dict(family="Noto Sans JP", size=13),
+    font=dict(family="Noto Sans JP", size=12),
     showlegend=False,
-    margin=dict(l=40,r=40,t=40,b=40)
+    margin=dict(l=40,r=40,t=30,b=30)
 )
 fig.update_layout(dragmode=False)
 fig.update_traces(hoverinfo="skip")
 
-st.markdown(f"<h2>📊 宅建士試験 レーダーチャート（{to_japanese_era(st.session_state.year)}）</h2>", unsafe_allow_html=True)
+st.markdown(f"<h3>📊 宅建士試験 レーダーチャート（{to_japanese_era(st.session_state.year)}）</h3>", unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True, config={"staticPlot": True, "displayModeBar": False})
 
 # -------------------------------
 # 合計得点表示
 # -------------------------------
 st.markdown(f"""
-<div style='display:flex; align-items:center; gap:15px; flex-wrap:wrap; margin-top:5px;'>
-    <div style='font-size:20px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
+<div style='display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:5px;'>
+    <div style='font-size:18px; font-weight:bold; color:royalblue;'>合計：{total_score}/{total_max}点（{total_pct:.1f}%）</div>
 </div>
-<div style='font-size:18px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
+<div style='font-size:16px; font-weight:bold; color:red;'>合格ライン：{passing_score}点</div>
 """, unsafe_allow_html=True)
